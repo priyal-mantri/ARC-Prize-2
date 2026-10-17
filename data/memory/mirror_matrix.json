@@ -95,6 +95,53 @@
         "hunter_baseline"
       ],
       "metadata": {}
+    },
+    {
+      "task_id": "1f85a75f",
+      "fingerprint": [
+        58.5,
+        9.0,
+        1.0,
+        1.312162160873413,
+        3.5,
+        0.9149999618530273,
+        0.03055555559694767,
+        0.02388888970017433,
+        0.006666666828095913,
+        0.0033333334140479565,
+        0.020555555820465088,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        30.0,
+        30.0,
+        1.0,
+        0.8377777338027954,
+        0.5
+      ],
+      "code": "lambda g: crop_to_largest_object(g)",
+      "program": {
+        "name": "crop_to_largest_object",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "crop_to_largest_object",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: crop_to_largest_object(g)"
+      },
+      "status": "verified_reusable",
+      "provenance": "verified_solver",
+      "tags": [
+        "crop_to_largest_object",
+        "hunter_baseline"
+      ],
+      "metadata": {}
     }
   ]
 }

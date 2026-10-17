@@ -56,6 +56,34 @@
       "complexity": 1,
       "known_limitations": "",
       "schema_version": "v1"
+    },
+    {
+      "skill_id": "skill_003_crop_to_largest_object",
+      "program": {
+        "name": "crop_to_largest_object",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "crop_to_largest_object",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: crop_to_largest_object(g)"
+      },
+      "preconditions": {
+        "requires_same_shape": false
+      },
+      "expected_effects": [],
+      "solved_task_ids": [
+        "1f85a75f"
+      ],
+      "verification_status": "verified_reusable",
+      "complexity": 1,
+      "known_limitations": "",
+      "schema_version": "v1"
     }
   ]
 }

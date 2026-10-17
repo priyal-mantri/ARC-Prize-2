@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
@@ -23,6 +24,7 @@ from src.correspondence.matcher import ObjectCorrespondenceMatcher
 from src.correspondence.relational_change import RelationalChangeAnalyzer, RelationalChangeReport
 from src.fingerprint.encoder import task_to_fingerprint
 from src.memory.mirror_matrix import MirrorMatrix
+from src.solvers.concept_library import ConceptLibrary
 from src.solvers.hunter import HunterBaselineSolver
 from src.solvers.llm_synthesizer import LLMSynthesizerInterface
 from src.search.verifier import DemonstrationVerifier, TaskDemonstration, VerificationResult
@@ -61,11 +63,29 @@ class IntegratedArcSolver:
     def __init__(
         self,
         memory_bank: Optional[MirrorMatrix] = None,
+        concept_library: Optional[ConceptLibrary] = None,
         search_timeout_seconds: float = 3.5,
         enable_repl_refinement: bool = True,
         enable_memory_retrieval: bool = True,
     ):
-        self.memory = memory_bank or MirrorMatrix()
+        if memory_bank is not None:
+            self.memory = memory_bank
+        else:
+            default_mem_path = Path("data/memory/mirror_matrix.json")
+            if default_mem_path.exists():
+                self.memory = MirrorMatrix(storage_path=default_mem_path)
+            else:
+                self.memory = MirrorMatrix()
+
+        if concept_library is not None:
+            self.concept_library = concept_library
+        else:
+            default_lib_path = Path("data/memory/concept_library.json")
+            if default_lib_path.exists():
+                self.concept_library = ConceptLibrary(storage_path=default_lib_path)
+            else:
+                self.concept_library = ConceptLibrary()
+
         self.search_timeout = search_timeout_seconds
         self.enable_repl = enable_repl_refinement
         self.enable_memory = enable_memory_retrieval
@@ -137,32 +157,53 @@ class IntegratedArcSolver:
             logger.debug("Relational change analysis error on %s: %s", task.task_id, e)
 
         # -------------------------------------------------------------
-        # STAGE 3: Structural Fingerprint & Memory Retrieval
+        # STAGE 3: Structural Fingerprint, Concept Library & Memory Retrieval
         # -------------------------------------------------------------
         memory_candidates: List[DSLProgram] = []
-        if self.enable_memory and len(self.memory) > 0:
-            stage = "memory_retrieval"
-            try:
-                fp = task_to_fingerprint(task)
-                matches = self.memory.query_similar(fp, top_k=3)
-                for entry, dist in matches:
-                    if entry.program is not None:
-                        # Verify retrieved program against current demonstrations
-                        vres = self.verifier.verify(entry.program, demonstrations)
-                        if vres.is_fully_solved:
-                            return self._build_solution(
-                                task=task,
-                                solved=True,
-                                best_program=entry.program,
-                                candidate_programs=[entry.program],
-                                stage="memory_exact_hit",
-                                start_time=start_time,
-                                diagnostics={"memory_source_task": entry.task_id, "distance": dist},
-                            )
-                        elif vres.mean_pixel_accuracy > 0.6:
-                            memory_candidates.append(entry.program)
-            except Exception as e:
-                logger.debug("Memory retrieval error on %s: %s", task.task_id, e)
+        if self.enable_memory:
+            # 3a. Concept Library Skills
+            if len(self.concept_library.skills) > 0:
+                same_shape = all(d.input_grid.shape == d.output_grid.shape for d in demonstrations)
+                matching_skills = self.concept_library.get_candidate_skills_for_task({"same_shape": same_shape})
+                for skill in matching_skills:
+                    vres = self.verifier.verify(skill.program, demonstrations)
+                    if vres.is_fully_solved:
+                        return self._build_solution(
+                            task=task,
+                            solved=True,
+                            best_program=skill.program,
+                            candidate_programs=[skill.program],
+                            stage="concept_library_hit",
+                            start_time=start_time,
+                            diagnostics={"skill_id": skill.skill_id, "solved_tasks": skill.solved_task_ids},
+                        )
+                    elif vres.mean_pixel_accuracy > 0.6:
+                        memory_candidates.append(skill.program)
+
+            # 3b. Vector Memory Retrieval
+            if len(self.memory) > 0:
+                stage = "memory_retrieval"
+                try:
+                    fp = task_to_fingerprint(task)
+                    matches = self.memory.query_similar(fp, top_k=3)
+                    for entry, dist in matches:
+                        if entry.program is not None:
+                            # Verify retrieved program against current demonstrations
+                            vres = self.verifier.verify(entry.program, demonstrations)
+                            if vres.is_fully_solved:
+                                return self._build_solution(
+                                    task=task,
+                                    solved=True,
+                                    best_program=entry.program,
+                                    candidate_programs=[entry.program],
+                                    stage="memory_exact_hit",
+                                    start_time=start_time,
+                                    diagnostics={"memory_source_task": entry.task_id, "distance": dist},
+                                )
+                            elif vres.mean_pixel_accuracy > 0.6 and entry.program not in memory_candidates:
+                                memory_candidates.append(entry.program)
+                except Exception as e:
+                    logger.debug("Memory retrieval error on %s: %s", task.task_id, e)
 
         # -------------------------------------------------------------
         # STAGE 4: Relational Symbolic Hypotheses
