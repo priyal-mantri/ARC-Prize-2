@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "skill_id": "skill_001_crop_to_content",
+      "program": {
+        "name": "crop_to_content",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "crop_to_content",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: crop_to_content(g)"
+      },
+      "preconditions": {
+        "requires_same_shape": false
+      },
+      "expected_effects": [],
+      "solved_task_ids": [
+        "1cf80156"
+      ],
+      "verification_status": "verified_reusable",
+      "complexity": 1,
+      "known_limitations": "",
+      "schema_version": "v1"
+    },
+    {
+      "skill_id": "skill_002_gravity_down",
+      "program": {
+        "name": "gravity_down",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "gravity_down",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: gravity_down(g)"
+      },
+      "preconditions": {
+        "requires_same_shape": true
+      },
+      "expected_effects": [],
+      "solved_task_ids": [
+        "1e0a9b12"
+      ],
+      "verification_status": "verified_reusable",
+      "complexity": 1,
+      "known_limitations": "",
+      "schema_version": "v1"
+    }
+  ]
+}

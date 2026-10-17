@@ -1,0 +1,816 @@
+{
+  "split_name": "evaluation",
+  "timestamp": "2026-10-17 07:08:40 UTC",
+  "git_revision": "unknown_revision",
+  "total_tasks_attempted": 50,
+  "tasks_solved": 0,
+  "task_level_accuracy": 0.0,
+  "total_test_inputs": 76,
+  "test_inputs_correct": 0,
+  "test_input_level_accuracy": 0.0,
+  "mean_execution_time_sec": 0.800263729095459,
+  "total_duration_sec": 40.01318645477295,
+  "stage_breakdown": {},
+  "task_results": [
+    {
+      "task_id": "0934a4d8",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 2.752565860748291,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 490,
+        "search_candidates_generated": 490,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "135a2760",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.8920707702636719,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 457,
+        "search_candidates_generated": 457,
+        "search_depth": 2,
+        "top_score": 2.9325674325674327,
+        "top_accuracy": 0.9825674325674326
+      }
+    },
+    {
+      "task_id": "136b0064",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.373241662979126,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 460,
+        "search_candidates_generated": 460,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "13e47133",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0055007934570312,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "replace_1_with_8",
+      "diagnostics": {
+        "search_candidates_executed": 316,
+        "search_candidates_generated": 493,
+        "search_depth": 2,
+        "top_score": 2.2473076923076922,
+        "top_accuracy": 0.3973076923076923
+      }
+    },
+    {
+      "task_id": "142ca369",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0168254375457764,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "identity",
+      "diagnostics": {
+        "search_candidates_executed": 159,
+        "search_candidates_generated": 459,
+        "search_depth": 2,
+        "top_score": 2.852860082304527,
+        "top_accuracy": 0.9028600823045267
+      }
+    },
+    {
+      "task_id": "16b78196",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0323727130889893,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "keep_largest_object",
+      "diagnostics": {
+        "search_candidates_executed": 130,
+        "search_candidates_generated": 441,
+        "search_depth": 2,
+        "top_score": 2.9022222222222225,
+        "top_accuracy": 0.9522222222222222
+      }
+    },
+    {
+      "task_id": "16de56c4",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0062851905822754,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "identity",
+      "diagnostics": {
+        "search_candidates_executed": 295,
+        "search_candidates_generated": 460,
+        "search_depth": 2,
+        "top_score": 2.829100529100529,
+        "top_accuracy": 0.879100529100529
+      }
+    },
+    {
+      "task_id": "1818057f",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0056955814361572,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 370,
+        "search_candidates_generated": 399,
+        "search_depth": 2,
+        "top_score": 2.8541394335511985,
+        "top_accuracy": 0.9041394335511983
+      }
+    },
+    {
+      "task_id": "195c6913",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0055384635925293,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "identity",
+      "diagnostics": {
+        "search_candidates_executed": 273,
+        "search_candidates_generated": 438,
+        "search_depth": 2,
+        "top_score": 2.821566666666667,
+        "top_accuracy": 0.8715666666666667
+      }
+    },
+    {
+      "task_id": "1ae2feb7",
+      "solved": false,
+      "num_test_inputs": 3,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0071632862091064,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_noise",
+      "diagnostics": {
+        "search_candidates_executed": 436,
+        "search_candidates_generated": 468,
+        "search_depth": 2,
+        "top_score": 2.8478146853146855,
+        "top_accuracy": 0.8978146853146853
+      }
+    },
+    {
+      "task_id": "20270e3b",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.2566981315612793,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 424,
+        "search_candidates_generated": 424,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "20a9e565",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.36963653564453125,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 474,
+        "search_candidates_generated": 474,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "21897d95",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0142796039581299,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "reflect_anti_diagonal",
+      "diagnostics": {
+        "search_candidates_executed": 314,
+        "search_candidates_generated": 519,
+        "search_depth": 2,
+        "top_score": 2.166168154761905,
+        "top_accuracy": 0.21616815476190476
+      }
+    },
+    {
+      "task_id": "221dfab4",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0135953426361084,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 419,
+        "search_candidates_generated": 419,
+        "search_depth": 2,
+        "top_score": 2.810501567398119,
+        "top_accuracy": 0.8605015673981191
+      }
+    },
+    {
+      "task_id": "247ef758",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0106689929962158,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "keep_largest_object",
+      "diagnostics": {
+        "search_candidates_executed": 399,
+        "search_candidates_generated": 468,
+        "search_depth": 2,
+        "top_score": 2.8126190476190476,
+        "top_accuracy": 0.8626190476190475
+      }
+    },
+    {
+      "task_id": "269e22fb",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.3427126407623291,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 433,
+        "search_candidates_generated": 433,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "271d71e2",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0067291259765625,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_smallest_object",
+      "diagnostics": {
+        "search_candidates_executed": 375,
+        "search_candidates_generated": 414,
+        "search_depth": 2,
+        "top_score": 2.6009115083942076,
+        "top_accuracy": 0.6509115083942073
+      }
+    },
+    {
+      "task_id": "28a6681f",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0069236755371094,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_noise",
+      "diagnostics": {
+        "search_candidates_executed": 372,
+        "search_candidates_generated": 438,
+        "search_depth": 2,
+        "top_score": 2.856666666666667,
+        "top_accuracy": 0.9066666666666666
+      }
+    },
+    {
+      "task_id": "291dc1e1",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.3700850009918213,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 490,
+        "search_candidates_generated": 490,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "2b83f449",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.7744245529174805,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_noise",
+      "diagnostics": {
+        "search_candidates_executed": 410,
+        "search_candidates_generated": 410,
+        "search_depth": 2,
+        "top_score": 2.680884247331616,
+        "top_accuracy": 0.7308842473316157
+      }
+    },
+    {
+      "task_id": "2ba387bc",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.40093135833740234,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 498,
+        "search_candidates_generated": 498,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "2c181942",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.006944179534912,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 415,
+        "search_candidates_generated": 445,
+        "search_depth": 2,
+        "top_score": 2.850445671344222,
+        "top_accuracy": 0.900445671344222
+      }
+    },
+    {
+      "task_id": "2d0172a1",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.2842588424682617,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 442,
+        "search_candidates_generated": 442,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "31f7f899",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.011782169342041,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "flip_vertical",
+      "diagnostics": {
+        "search_candidates_executed": 356,
+        "search_candidates_generated": 456,
+        "search_depth": 2,
+        "top_score": 2.873453152464142,
+        "top_accuracy": 0.9234531524641415
+      }
+    },
+    {
+      "task_id": "332f06d7",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0048885345458984,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "outline_objects",
+      "diagnostics": {
+        "search_candidates_executed": 231,
+        "search_candidates_generated": 405,
+        "search_depth": 2,
+        "top_score": 2.925687889739229,
+        "top_accuracy": 0.9756878897392289
+      }
+    },
+    {
+      "task_id": "35ab12c3",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0074107646942139,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "identity",
+      "diagnostics": {
+        "search_candidates_executed": 337,
+        "search_candidates_generated": 453,
+        "search_depth": 2,
+        "top_score": 2.7358641975308644,
+        "top_accuracy": 0.7858641975308641
+      }
+    },
+    {
+      "task_id": "36a08778",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0093929767608643,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 218,
+        "search_candidates_generated": 402,
+        "search_depth": 2,
+        "top_score": 2.6622140095354383,
+        "top_accuracy": 0.7122140095354381
+      }
+    },
+    {
+      "task_id": "38007db0",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.20896363258361816,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 433,
+        "search_candidates_generated": 433,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "3a25b0d8",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.7730474472045898,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 481,
+        "search_candidates_generated": 481,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "3dc255db",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0053353309631348,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_noise",
+      "diagnostics": {
+        "search_candidates_executed": 305,
+        "search_candidates_generated": 425,
+        "search_depth": 2,
+        "top_score": 2.881666666666667,
+        "top_accuracy": 0.9316666666666666
+      }
+    },
+    {
+      "task_id": "3e6067c3",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0072071552276611,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 308,
+        "search_candidates_generated": 474,
+        "search_depth": 2,
+        "top_score": 2.9087823150786116,
+        "top_accuracy": 0.9587823150786114
+      }
+    },
+    {
+      "task_id": "409aa875",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0063543319702148,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "identity",
+      "diagnostics": {
+        "search_candidates_executed": 376,
+        "search_candidates_generated": 415,
+        "search_depth": 2,
+        "top_score": 2.9239583333333337,
+        "top_accuracy": 0.9739583333333334
+      }
+    },
+    {
+      "task_id": "446ef5d2",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.9268364906311035,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "complete_symmetry",
+      "diagnostics": {
+        "search_candidates_executed": 442,
+        "search_candidates_generated": 442,
+        "search_depth": 2,
+        "top_score": 2.5204166666666667,
+        "top_accuracy": 0.5704166666666667
+      }
+    },
+    {
+      "task_id": "45a5af55",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.2248237133026123,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 442,
+        "search_candidates_generated": 442,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "4a21e3da",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.006187915802002,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 356,
+        "search_candidates_generated": 398,
+        "search_depth": 2,
+        "top_score": 2.777160493827161,
+        "top_accuracy": 0.8271604938271605
+      }
+    },
+    {
+      "task_id": "4c3d4a41",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.708136796951294,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "keep_largest_object",
+      "diagnostics": {
+        "search_candidates_executed": 475,
+        "search_candidates_generated": 475,
+        "search_depth": 2,
+        "top_score": 2.8375000000000004,
+        "top_accuracy": 0.8875
+      }
+    },
+    {
+      "task_id": "4c416de3",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0051078796386719,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "remove_noise",
+      "diagnostics": {
+        "search_candidates_executed": 327,
+        "search_candidates_generated": 470,
+        "search_depth": 2,
+        "top_score": 2.9001062344702637,
+        "top_accuracy": 0.9501062344702635
+      }
+    },
+    {
+      "task_id": "4c7dc4dd",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.1156525611877441,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 442,
+        "search_candidates_generated": 442,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "4e34c42c",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.28192877769470215,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 481,
+        "search_candidates_generated": 481,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "53fb4810",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.7625658512115479,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 436,
+        "search_candidates_generated": 436,
+        "search_depth": 2,
+        "top_score": 2.8968416547220897,
+        "top_accuracy": 0.9468416547220895
+      }
+    },
+    {
+      "task_id": "5545f144",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.3244142532348633,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 460,
+        "search_candidates_generated": 460,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "581f7754",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0059518814086914,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "flip_horizontal",
+      "diagnostics": {
+        "search_candidates_executed": 412,
+        "search_candidates_generated": 423,
+        "search_depth": 2,
+        "top_score": 2.7903832699287245,
+        "top_accuracy": 0.8403832699287245
+      }
+    },
+    {
+      "task_id": "58490d8a",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.2988131046295166,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 453,
+        "search_candidates_generated": 453,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "58f5dbd5",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.4126579761505127,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 482,
+        "search_candidates_generated": 482,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "5961cc34",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 1.0165247917175293,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 128,
+        "search_candidates_generated": 400,
+        "search_depth": 2,
+        "top_score": 2.79034255599473,
+        "top_accuracy": 0.84034255599473
+      }
+    },
+    {
+      "task_id": "5dbc8537",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.4322352409362793,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 517,
+        "search_candidates_generated": 517,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "62593bfd",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.958470344543457,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "gravity_up",
+      "diagnostics": {
+        "search_candidates_executed": 490,
+        "search_candidates_generated": 490,
+        "search_depth": 2,
+        "top_score": 2.879670008354219,
+        "top_accuracy": 0.9296700083542189
+      }
+    },
+    {
+      "task_id": "64efde09",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.9309089183807373,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "apply_gravity",
+      "diagnostics": {
+        "search_candidates_executed": 475,
+        "search_candidates_generated": 475,
+        "search_depth": 2,
+        "top_score": 2.814826744137089,
+        "top_accuracy": 0.8648267441370889
+      }
+    },
+    {
+      "task_id": "65b59efc",
+      "solved": false,
+      "num_test_inputs": 2,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.3283350467681885,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 490,
+        "search_candidates_generated": 490,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    },
+    {
+      "task_id": "67e490f4",
+      "solved": false,
+      "num_test_inputs": 1,
+      "test_inputs_correct": 0,
+      "execution_time_sec": 0.2711350917816162,
+      "solver_stage": "dsl_beam_search",
+      "best_program_name": "rotate_90",
+      "diagnostics": {
+        "search_candidates_executed": 482,
+        "search_candidates_generated": 482,
+        "search_depth": 2,
+        "top_score": -0.05,
+        "top_accuracy": 0.0
+      }
+    }
+  ]
+}

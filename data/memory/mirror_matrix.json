@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "vector_dim": 20,
+  "entries": [
+    {
+      "task_id": "1cf80156",
+      "fingerprint": [
+        1.0,
+        8.333333015441895,
+        8.333333015441895,
+        8.333333015441895,
+        2.0,
+        0.9362794756889343,
+        0.020202020183205605,
+        0.02500000037252903,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.018518518656492233,
+        0.0,
+        11.0,
+        12.0,
+        0.9166666865348816,
+        0.8963804244995117,
+        0.0
+      ],
+      "code": "lambda g: crop_to_content(g)",
+      "program": {
+        "name": "crop_to_content",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "crop_to_content",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: crop_to_content(g)"
+      },
+      "status": "verified_reusable",
+      "provenance": "verified_solver",
+      "tags": [
+        "crop_to_content",
+        "hunter_baseline"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "1e0a9b12",
+      "fingerprint": [
+        4.333333492279053,
+        2.3333332538604736,
+        1.0,
+        1.5500000715255737,
+        5.0,
+        0.7284259796142578,
+        0.04749999940395355,
+        0.013333332724869251,
+        0.03999999910593033,
+        0.0694444477558136,
+        0.0,
+        0.034166667610406876,
+        0.018518518656492233,
+        0.018518518656492233,
+        0.030092591419816017,
+        5.0,
+        5.0,
+        1.0,
+        0.5587962865829468,
+        0.0
+      ],
+      "code": "lambda g: gravity_down(g)",
+      "program": {
+        "name": "gravity_down",
+        "origin": "hunter_baseline",
+        "steps": [
+          {
+            "primitive": "gravity_down",
+            "args": [],
+            "kwargs": {},
+            "params": {}
+          }
+        ],
+        "complexity": 1,
+        "lambda_code": "lambda g: gravity_down(g)"
+      },
+      "status": "verified_reusable",
+      "provenance": "verified_solver",
+      "tags": [
+        "gravity_down",
+        "hunter_baseline"
+      ],
+      "metadata": {}
+    }
+  ]
+}
