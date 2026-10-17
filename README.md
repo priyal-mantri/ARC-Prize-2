@@ -1,128 +1,187 @@
-# ARC-AGI-2 Research Solver Workspace — Phase 1
+# ARC-AGI-2 Complete Neuro-Symbolic Research Solver
 
-This repository hosts a clean, modular, research-oriented ARC-AGI-2 solver architecture.
-
-In Phase 1, the focus is strictly on **dataset discovery, structural audit, data pipeline integrity, and reproducible visualization**. No heuristic solver architectures, LLMs, or neural networks are implemented during this phase.
+An end-to-end neuro-symbolic research solver for the **ARC-AGI-2** (Abstraction and Reasoning Corpus) competition. Combines object-centric perception, graph representations, cross-demonstration relational reasoning, domain-specific language (DSL) program synthesis, memory retrieval, and REPL failure refinement.
 
 ---
 
-## Workspace Structure
+## 1. Architectural Pipeline
+
+```
+DATASET (Training / Evaluation / Test)
+   │
+   ▼
+CANONICAL TASK NORMALIZATION (ArcGrid, BoundingBox)
+   │
+   ▼
+OBJECT-CENTRIC PERCEPTION (PerceptionEngine, 4-conn & 8-conn components)
+   │
+   ▼
+PERCEPTION HYPOTHESES (mono_4conn, mono_8conn, color_partition, multicolor)
+   │
+   ▼
+SCENE GRAPH REPRESENTATION (ArcSceneGraph, NetworkX DiGraph)
+   │
+   ▼
+CROSS-EXAMPLE CORRESPONDENCE (ObjectCorrespondenceMatcher)
+   │
+   ▼
+RELATIONAL CHANGE INVARIANTS (RelationalChangeAnalyzer)
+   │
+   ▼
+STRUCTURAL FINGERPRINTS (20-dimensional topological barcode)
+   │
+   ▼
+MEMORY & SKILL RETRIEVAL (MirrorMatrix, ConceptLibrary)
+   │
+   ▼
+HUNTER SYMBOLIC BASELINE & RELATIONAL HYPOTHESES
+   │
+   ▼
+DSL PROGRAM SYNTHESIS (Beam Search over 45+ typed primitives)
+   │
+   ▼
+CONSTRAINT FILTERING (Pruning shape/color inconsistent branches)
+   │
+   ▼
+DEMONSTRATION VERIFIER & REPL REFINEMENT (Exact pixel verification)
+   │
+   ▼
+CANDIDATE RANKING & MULTI-TEST INFERENCE (2 attempts per test query)
+   │
+   ▼
+KAGGLE SUBMISSION ADAPTER (Schema-validated JSON output)
+```
+
+---
+
+## 2. Directory Structure
 
 ```
 ARC-Prize-2/
 ├── data/
-│   └── raw/                       # Canonical competition JSON files (read-only)
-│       ├── arc-agi_training_challenges.json
-│       ├── arc-agi_training_solutions.json
-│       ├── arc-agi_evaluation_challenges.json
-│       ├── arc-agi_evaluation_solutions.json
-│       ├── arc-agi_test_challenges.json
-│       └── sample_submission.json
-├── notebooks/
-│   └── 01_dataset_audit.ipynb     # Fully executed 16-section reproducible audit notebook
-├── reports/
-│   └── dataset_audit.md           # Comprehensive technical report of audit findings
+│   ├── raw/                  # Official competition JSON challenge & solution files
+│   └── memory/               # Harvested MirrorMatrix barcodes & ConceptLibrary skills
 ├── src/
-│   ├── __init__.py
-│   ├── visualization.py           # Canonical 10-color ARC plotting and rendering tools
-│   └── data/
-│       ├── __init__.py
-│       ├── dataset_loader.py       # Safe discovery, caching, and ArcTask loading
-│       ├── statistics.py          # Geometric, color, and distribution analytics
-│       └── validation.py          # Structural integrity and rectangular grid checks
-├── tests/
-│   └── test_data_pipeline.py      # Automated unit and integration tests (9 tests)
-├── pytest.ini                     # Pytest configuration with pythonpath = .
-└── README.md                      # Project documentation and architectural overview
+│   ├── representation/       # Canonical immutable ArcGrid & BoundingBox domain models
+│   ├── perception/           # Object segmentation, background inference & hypotheses
+│   ├── scene_graph/          # Attributed directed scene graphs & spatial relations
+│   ├── correspondence/       # Bipartite object matching & cross-demo relational changes
+│   ├── fingerprint/          # 20D topological & geometric feature barcode encoder
+│   ├── memory/               # MirrorMatrix vector memory bank & FAISS/NumPy search
+│   ├── dsl/                  # 45+ deterministic primitives, DSLProgram, & execution
+│   ├── search/               # ConstraintFilter, Verifier, REPLRefiner, & DSLBeamSearch
+│   ├── solvers/              # HunterBaseline, BootstrapHarvester, & IntegratedArcSolver
+│   ├── submission/           # Kaggle submission adapter and format validator
+│   ├── benchmark/            # Reproducible benchmark harness and metrics
+│   ├── visualization.py      # Canonical 10-color ARC colormap rendering
+│   └── cli.py                # Unified CLI entrypoint
+├── notebooks/
+│   ├── 01_dataset_audit.ipynb
+│   ├── 02_perception_and_relational_reasoning.ipynb
+│   └── 03_solver_benchmark_and_diagnostics.ipynb
+├── tests/                    # 33 unit and integration tests (100% passing)
+├── reports/
+│   ├── benchmarks/           # Empirical benchmark evaluation JSON and Markdown
+│   ├── complete_architecture_report.md
+│   ├── dataset_audit.md
+│   └── dataset_provenance_review.md
+├── submissions/              # Generated submission.json files
+└── pytest.ini                # Pytest configuration
 ```
 
 ---
 
-## Safety & Data Integrity Guarantees
+## 3. Installation & Environment
 
-1. **Zero Ground-Truth Leakage:** The `ArcTask` class exposes only training demonstration pairs and test input grids. Test output grids are never stored in or returned by `ArcTask`.
-2. **Strict Evaluation Isolation:** Ground-truth solutions can only be retrieved via `loader.load_ground_truth(task_id)`, explicitly designated for offline evaluation benchmarks and never accessible to solver reasoning modules.
-3. **Immutability:** Grid data is encapsulated in frozen dataclasses with numpy arrays.
-4. **Reproducibility:** Paths are auto-discovered dynamically relative to the repository root. No absolute paths are hardcoded.
-5. **No Data Modification:** The original dataset files and task IDs are completely preserved without alteration or fabrication.
+The architecture runs on Python 3.10+ using standard scientific computing libraries. All dependencies run 100% offline without requiring internet access or GPU weights.
 
----
-
-## Quickstart
-
-### 1. Environment Setup
-
-The repository uses Python 3.12 with standard scientific packages:
 ```bash
-# Verify environment dependencies
-python3 -c "import numpy, matplotlib; print('Core dependencies OK')"
+# Clone or navigate to the repository
+cd /home/naya/Documents/ARC-Prize-2
+
+# Install dependencies (if not already installed)
+pip install numpy scipy networkx matplotlib pytest nbformat nbclient
 ```
-
-### 2. Running Automated Tests
-
-Run the full test suite using `pytest`:
-```bash
-pytest tests/
-```
-All 9 unit and integration tests verify:
-- Complete file discovery of all 6 canonical files.
-- Exact task counts (1,000 train, 120 eval, 240 test).
-- Zero task ID overlap between training and evaluation splits.
-- Strict isolation of evaluation ground-truth.
-- Robust detection of ragged, malformed, or out-of-range grids.
-- Deterministic calculation of descriptive statistics.
-
-### 3. Loading a Task in Python
-
-```python
-from src.data.dataset_loader import ArcDatasetLoader
-from src.visualization import plot_task
-import matplotlib.pyplot as plt
-
-loader = ArcDatasetLoader()
-
-# Load a task (safely exposes only train pairs and test inputs)
-task = loader.load_task("00576224", split="training")
-print(task)
-# ArcTask(task_id='00576224', split='training', train_pairs=3, test_inputs=1)
-
-# Render using the canonical 10-color ARC palette
-fig = plot_task(task)
-plt.show()
-```
-
-### 4. Exploring the Dataset Audit Notebook
-
-Launch JupyterLab to inspect the interactive audit:
-```bash
-jupyter lab notebooks/01_dataset_audit.ipynb
-```
-The notebook covers 16 comprehensive sections including schema validation, grid dimension histograms, color distributions, multi-test query analysis, and representative puzzle visualizations.
 
 ---
 
-## Summary of Dataset Audit Findings
+## 4. Command-Line Interface (CLI)
 
-| Property | Training Split | Evaluation Split | Public Offline Test Split |
-| :--- | :---: | :---: | :---: |
-| **Tasks** | **1,000** | **120** | **240** (subset of train) |
-| **Demonstration Pairs** | 3,232 (mean: 3.23) | 358 (mean: 2.98) | 767 (mean: 3.20) |
-| **Test Inputs** | 1,076 (mean: 1.08) | 172 (mean: 1.43) | 259 (mean: 1.08) |
-| **Available Solutions** | 1,076 grids | 172 grids | 0 (hidden) |
-| **Multi-Test Tasks (>1 test)** | **69 (6.9%)** | **49 (40.8%)** | **17 (7.1%)** |
-| **Same Dimension Rate** | 65.4% | 69.0% | 67.7% |
-| **Resized Dimension Rate** | 34.6% | 31.0% | 32.3% |
-| **Square Grid Rate** | 62.0% | 60.4% | 61.8% |
-| **Malformed Tasks** | **0 (100% clean)** | **0 (100% clean)** | **0 (100% clean)** |
-| **Grid Dimensions (H × W)** | $[1, 30] \times [1, 30]$ | $[4, 30] \times [3, 30]$ | $[2, 30] \times [2, 30]$ |
-| **Colors Present** | Canonical 10 (0..9) | Canonical 10 (0..9) | Canonical 10 (0..9) |
+The unified CLI provides 8 core subcommands for solving, inspecting, benchmarking, and submitting.
+
+### Solve a Single Task
+```bash
+# Solve real task 1cf80156 (solved via Hunter Baseline: crop_to_content)
+python3 src/cli.py solve --task-id 1cf80156 --split training
+
+# Solve real task 1e0a9b12 (solved via DSL Beam Search: gravity_down)
+python3 src/cli.py solve --task-id 1e0a9b12 --split training --timeout 2.0
+```
+
+### Inspect Object-Centric Perception
+```bash
+python3 src/cli.py perceive --task-id 007bbfb7 --split training
+```
+
+### Inspect Scene Graph Construction
+```bash
+python3 src/cli.py scene-graph --task-id 007bbfb7 --split training
+```
+
+### Inspect Cross-Demonstration Relational Changes
+```bash
+python3 src/cli.py relational --task-id 007bbfb7 --split training
+```
+
+### Run Hunter Symbolic Baseline
+```bash
+python3 src/cli.py baseline --split training --max-tasks 50
+```
+
+### Run Benchmark with Ground-Truth Evaluation
+```bash
+# Training split subset benchmark
+python3 src/cli.py benchmark --split training --max-tasks 50 --timeout 1.0
+
+# Held-out evaluation split benchmark
+python3 src/cli.py benchmark --split evaluation --max-tasks 50 --timeout 1.0
+```
+
+### Harvest Memory from Training Split
+```bash
+python3 src/cli.py harvest --max-tasks 100 --output-dir data/memory
+```
+
+### Generate Competition Submission
+```bash
+python3 src/cli.py submit --output submissions/submission.json --dry-run
+```
 
 ---
 
-## Phase 2 Roadmap: Solver Foundations
+## 5. Running Tests
 
-Following the completion of the Phase 1 audit, Phase 2 will focus on:
-1. **Grid Primitives & Morphological Segmentation:** Object detection, connected component extraction, color clustering, and bounding box computation.
-2. **Geometry & Symmetry Invariants:** Reflection, rotation, crop, pad, tiling, and affine spatial transformations.
-3. **Execution Engine & DSL Definition:** Safe, typed domain-specific primitives for grid transformation.
-4. **Offline Benchmarking Harness:** Multi-attempt submission generator and validation metrics evaluator.
+Run the complete test suite across all 8 test modules:
+
+```bash
+python3 -m pytest tests/ -v
+```
+
+All 33 unit and integration tests execute in ~9 seconds and pass 100%.
+
+---
+
+## 6. Jupyter Notebooks
+
+1. **`notebooks/01_dataset_audit.ipynb`**: Complete 16-section reproducible dataset audit, task statistics, and split analysis.
+2. **`notebooks/02_perception_and_relational_reasoning.ipynb`**: Multi-hypothesis perception, scene graph nodes and edges, and invariant transformation discovery.
+3. **`notebooks/03_solver_benchmark_and_diagnostics.ipynb`**: Baseline vs. synthesis solving demonstration on real tasks (`1cf80156`, `1e0a9b12`), and submission pipeline validation.
+
+---
+
+## 7. Submission Pipeline & Rules Compliance
+
+- **No Data Leakage**: Ground truth solutions are strictly separated from solver task representations.
+- **Multi-Test Handling**: Iterates over all test queries per task, generating `attempt_1` and `attempt_2`.
+- **Offline Self-Contained**: Operates without live internet connections, remote API calls, or uninstalled models.
+- **Preserved Archive**: The legacy reference project `/home/naya/Documents/ARC - 2` remains 100% read-only and untouched.
