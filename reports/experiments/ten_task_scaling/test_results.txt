@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/naya/Documents/ARC-Prize-2
+configfile: pytest.ini
+plugins: anyio-4.15.1, platformdirs-4.12.0, zarr-3.4.0
+collecting ... collected 8 items
+
+tests/test_ten_task_scaling_experiment.py::test_ten_task_manifest_uniqueness_and_completeness PASSED [ 12%]
+tests/test_ten_task_scaling_experiment.py::test_candidate_budgets_reach_search_implementation PASSED [ 25%]
+tests/test_ten_task_scaling_experiment.py::test_candidate_limits_strictly_enforced PASSED [ 37%]
+tests/test_ten_task_scaling_experiment.py::test_strict_evaluation_isolation_contract PASSED [ 50%]
+tests/test_ten_task_scaling_experiment.py::test_reproducibility_across_runs PASSED [ 62%]
+tests/test_ten_task_scaling_experiment.py::test_qwen_status_truthfully_reported PASSED [ 75%]
+tests/test_ten_task_scaling_experiment.py::test_timing_fields_populated_with_real_measurements PASSED [ 87%]
+tests/test_ten_task_scaling_experiment.py::test_five_task_baseline_artifacts_preserved PASSED [100%]
+
+============================== 8 passed in 11.81s ==============================

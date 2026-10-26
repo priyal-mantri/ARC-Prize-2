@@ -1,0 +1,101 @@
+{
+  "manifest_name": "arc_agi_2_ten_task_scaling_manifest",
+  "version": "1.0.0",
+  "evaluation_type": "training-task generalization probe",
+  "dataset_split": "arc-agi_training_challenges.json",
+  "description": "Controlled 10-task scaling benchmark testing candidate budgets 20, 40, and 60 across 7 distinct transformation families: fractal expansion, morphological hole-filling, periodic reflection tiling, relational coloring, multi-region structures, rigid geometry (rot/flip), color mapping, gravity extrusion, and dimension reduction.",
+  "selection_methodology": "Includes all 5 tasks from the Phase 1 acceptance manifest plus 5 diverse, non-duplicate tasks selected from the official training split to probe scaling behavior across varied spatial, topological, and geometric invariants without task selection bias.",
+  "ground_truth_isolation_protocol": "During solving, inference, memory retrieval, and candidate generation, the solver has access STRICTLY to training pairs and test input grids. Ground truth test solution grids are withheld in a separate evaluation harness and evaluated only after predictions are written to disk.",
+  "tasks": [
+    {
+      "task_id": "007bbfb7",
+      "category": "composition_fractal",
+      "source_split": "training",
+      "description": "Kronecker fractal expansion where non-zero pattern cells expand into complete copies of the input subgrid.",
+      "input_shape_sample": [3, 3],
+      "output_shape_sample": [9, 9],
+      "reason_for_inclusion": "Retained from 5-task acceptance suite. Tests dimension expansion and recursive structural composition."
+    },
+    {
+      "task_id": "00d62c1b",
+      "category": "topology_enclosed_region",
+      "source_split": "training",
+      "description": "Interior enclosed voids (0-holes) surrounded by non-zero boundary pixels are filled with a newly introduced color (4).",
+      "input_shape_sample": [10, 10],
+      "output_shape_sample": [10, 10],
+      "reason_for_inclusion": "Retained from 5-task acceptance suite. Tests morphological hole detection and relational parameterization of new colors."
+    },
+    {
+      "task_id": "00576224",
+      "category": "repetition_tiling",
+      "source_split": "training",
+      "description": "Tiling subgrid into a 3x3 repetition with alternating vertical reflections across horizontal neighbors.",
+      "input_shape_sample": [2, 2],
+      "output_shape_sample": [6, 6],
+      "reason_for_inclusion": "Retained from 5-task acceptance suite. Tests periodic reflection tiling and composite dimension expansion."
+    },
+    {
+      "task_id": "009d5c81",
+      "category": "object_relational",
+      "source_split": "training",
+      "description": "Relational color assignment conditioned on foreground component structure and spatial adjacency.",
+      "input_shape_sample": [14, 14],
+      "output_shape_sample": [14, 14],
+      "reason_for_inclusion": "Retained from 5-task acceptance suite. Unsolved at budget 20; tests whether higher candidate budgets enable depth-3 composition."
+    },
+    {
+      "task_id": "00dbd492",
+      "category": "complex_structural",
+      "source_split": "training",
+      "description": "Multi-region interior filling conditioned on component area and boundary enclosure.",
+      "input_shape_sample": [15, 15],
+      "output_shape_sample": [15, 15],
+      "reason_for_inclusion": "Retained from 5-task acceptance suite. Unsolved at budget 20; tests multi-region topological partitioning under budget scaling."
+    },
+    {
+      "task_id": "3c9b0459",
+      "category": "geometry_rotation",
+      "source_split": "training",
+      "description": "Rigid geometric 180-degree rotation (rot180).",
+      "input_shape_sample": [3, 3],
+      "output_shape_sample": [3, 3],
+      "reason_for_inclusion": "Tests whether basic rigid isometric rotations are cleanly discovered and verified at low candidate budgets."
+    },
+    {
+      "task_id": "68b16354",
+      "category": "geometry_reflection",
+      "source_split": "training",
+      "description": "Rigid geometric vertical reflection (flip_v) across horizontal axis.",
+      "input_shape_sample": [5, 5],
+      "output_shape_sample": [5, 5],
+      "reason_for_inclusion": "Tests pure reflectional symmetry discovery on multi-color 5x5 grids."
+    },
+    {
+      "task_id": "c8f0f002",
+      "category": "color_substitution",
+      "source_split": "training",
+      "description": "Global color replacement mapping color 7 to color 5 while preserving all other foreground and background values across varying grid shapes.",
+      "input_shape_sample": [3, 4],
+      "output_shape_sample": [3, 4],
+      "reason_for_inclusion": "Tests variable-dimension color mapping and relational color substitution."
+    },
+    {
+      "task_id": "d037b0a7",
+      "category": "movement_gravity_extrusion",
+      "source_split": "training",
+      "description": "Directional downwards gravity/extrusion projecting non-zero pixels down to the bottom border.",
+      "input_shape_sample": [3, 3],
+      "output_shape_sample": [3, 3],
+      "reason_for_inclusion": "Tests directional physics-style movement and column-wise projection rules."
+    },
+    {
+      "task_id": "445eab21",
+      "category": "object_abstraction_dimension_reduction",
+      "source_split": "training",
+      "description": "Identifies dominant nested rectangular outline among background objects and abstracts it into a uniform 2x2 color block.",
+      "input_shape_sample": [10, 10],
+      "output_shape_sample": [2, 2],
+      "reason_for_inclusion": "Tests dimension reduction, object abstraction, and filtering of nested bounding boxes."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-10-26T05:14:11Z",
+  "python_version": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "solver_mode": "hybrid-with-Qwen-unavailable",
+  "qwen_status": "unavailable_symbolic_fallback",
+  "qwen_telemetry": {
+    "model_identifier": "none",
+    "model_artifact_source": "none",
+    "quantization_method": "none",
+    "runtime_versions": {
+      "torch": "2.14.0+cpu",
+      "transformers": "unavailable"
+    },
+    "gpu_device": null,
+    "model_loading_success": false,
+    "inference_success": false,
+    "calls_count": 0,
+    "tokens_generated": 0,
+    "inference_latency_sec": 0.0,
+    "fallback_usage": true,
+    "fallback_reason": "No local Qwen model artifact found at candidate paths",
+    "failures": [],
+    "proposals_count": 0,
+    "valid_dsl_programs_count": 0
+  },
+  "cold_model_load_duration_sec": 5.129862890998993,
+  "network_access": "disabled_offline",
+  "ground_truth_isolation": "verified_strict_separation"
+}

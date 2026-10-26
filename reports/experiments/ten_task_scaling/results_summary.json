@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-10-26T05:14:18Z",
+  "manifest_name": "arc_agi_2_ten_task_scaling_manifest",
+  "num_tasks": 10,
+  "budgets_evaluated": [
+    20,
+    40,
+    60
+  ],
+  "solver_mode": "hybrid-with-Qwen-unavailable",
+  "qwen_status": "unavailable_symbolic_fallback",
+  "cold_model_load_duration_sec": 5.129862890998993,
+  "dataset_load_duration_sec": 0.575147793000724,
+  "total_experiment_wall_clock_sec": 11.733939838000879,
+  "peak_cpu_ram_mb": 324.76953125,
+  "peak_gpu_vram_mb": 0.0,
+  "per_budget_summary": {
+    "20": {
+      "budget": 20,
+      "tasks_solved_count": 6,
+      "tasks_solved_percentage": 60.0,
+      "tasks_training_consistent_count": 6,
+      "mean_task_runtime_sec": 0.194,
+      "median_task_runtime_sec": 0.156,
+      "total_budget_runtime_sec": 1.9404,
+      "mean_candidates_evaluated": 12.1,
+      "solved_task_ids": [
+        "007bbfb7",
+        "00d62c1b",
+        "00576224",
+        "3c9b0459",
+        "68b16354",
+        "c8f0f002"
+      ]
+    },
+    "40": {
+      "budget": 40,
+      "tasks_solved_count": 6,
+      "tasks_solved_percentage": 60.0,
+      "tasks_training_consistent_count": 6,
+      "mean_task_runtime_sec": 0.1883,
+      "median_task_runtime_sec": 0.1633,
+      "total_budget_runtime_sec": 1.8832,
+      "mean_candidates_evaluated": 20.1,
+      "solved_task_ids": [
+        "007bbfb7",
+        "00d62c1b",
+        "00576224",
+        "3c9b0459",
+        "68b16354",
+        "c8f0f002"
+      ]
+    },
+    "60": {
+      "budget": 60,
+      "tasks_solved_count": 6,
+      "tasks_solved_percentage": 60.0,
+      "tasks_training_consistent_count": 6,
+      "mean_task_runtime_sec": 0.209,
+      "median_task_runtime_sec": 0.1333,
+      "total_budget_runtime_sec": 2.0899,
+      "mean_candidates_evaluated": 28.1,
+      "solved_task_ids": [
+        "007bbfb7",
+        "00d62c1b",
+        "00576224",
+        "3c9b0459",
+        "68b16354",
+        "c8f0f002"
+      ]
+    }
+  },
+  "budget_scaling_deltas": {
+    "newly_solved_20_to_40": [],
+    "newly_solved_40_to_60": [],
+    "regressed_tasks_20_to_40": [],
+    "regressed_tasks_40_to_60": [],
+    "marginal_accuracy_gain_20_to_40": 0,
+    "marginal_accuracy_gain_40_to_60": 0,
+    "marginal_time_cost_sec_20_to_40": -0.0572,
+    "marginal_time_cost_sec_40_to_60": 0.2067
+  }
+}
