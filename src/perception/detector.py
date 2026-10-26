@@ -171,6 +171,17 @@ class PerceptionEngine:
     def __init__(self):
         pass
 
+    def detect_objects(
+        self,
+        grid: ArcGrid,
+        background_color: int = 0,
+        connectivity: int = 4
+    ) -> List[ArcObject]:
+        """Segments monochromatic connected components on the grid."""
+        return self.segment_monochromatic_connected_components(
+            grid, background_color=background_color, connectivity=connectivity
+        )
+
     def segment_monochromatic_connected_components(
         self,
         grid: ArcGrid,

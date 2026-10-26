@@ -1,0 +1,61 @@
+{
+  "manifest_name": "arc_agi_2_five_task_acceptance_manifest",
+  "version": "1.0.0",
+  "description": "Controlled 5-task acceptance benchmark testing diverse reasoning capabilities across geometric, topological, repeating, object-relational, and structural domains.",
+  "selection_methodology": "Selected to represent 5 distinct ARC transformation families: (1) Composition/Fractal, (2) Topological Enclosed Region, (3) Repeating Alternating Tile, (4) Relational Color/Object Invariance, (5) Structural Multi-Region Filling. Includes both expressible primitives and hard search limits to avoid selection bias.",
+  "dataset_split": "training",
+  "tasks": [
+    {
+      "task_id": "007bbfb7",
+      "category": "composition_fractal",
+      "description": "Kronecker expansion where pattern layout dictates placement of pattern copies.",
+      "input_shape": [3, 3],
+      "output_shape": [9, 9]
+    },
+    {
+      "task_id": "00d62c1b",
+      "category": "topology_enclosed_region",
+      "description": "Interior enclosed 0-holes within foreground boundaries filled with a newly introduced color (4).",
+      "input_shape": [10, 10],
+      "output_shape": [10, 10]
+    },
+    {
+      "task_id": "00576224",
+      "category": "repetition_tiling",
+      "description": "Alternating 3x3 horizontal tiling with alternating row flips.",
+      "input_shape": [2, 2],
+      "output_shape": [6, 6]
+    },
+    {
+      "task_id": "009d5c81",
+      "category": "object_relational",
+      "description": "Relational color assignment conditioned on foreground component structure.",
+      "input_shape": [14, 14],
+      "output_shape": [14, 14]
+    },
+    {
+      "task_id": "00dbd492",
+      "category": "complex_structural",
+      "description": "Multi-region interior filling conditioned on component area and boundary enclosure.",
+      "input_shape": [15, 15],
+      "output_shape": [15, 15]
+    }
+  ],
+  "regression_suite": [
+    {
+      "task_id": "1cf80156",
+      "category": "crop_to_content",
+      "description": "Minimal bounding box crop enclosing non-zero foreground content."
+    },
+    {
+      "task_id": "1e0a9b12",
+      "category": "movement_gravity",
+      "description": "Directional downwards gravity shifting all non-zero cells to the floor."
+    },
+    {
+      "task_id": "1f85a75f",
+      "category": "object_selection_crop",
+      "description": "Identifies largest connected component and crops to its bounding box."
+    }
+  ]
+}

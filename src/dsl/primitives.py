@@ -10,6 +10,7 @@ Provides 45+ deterministic, composable grid transformation operations:
 - Object extraction, Filtering, and Outlining
 """
 
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import scipy.ndimage
@@ -381,6 +382,28 @@ def pad_grid(grid: np.ndarray, pad_size: int, pad_color: int = 0) -> np.ndarray:
     return np.pad(grid, pad_width=pad_size, mode='constant', constant_values=pad_color)
 
 
+def fractal_expansion(grid: np.ndarray) -> np.ndarray:
+    """Replaces each non-zero pixel in grid with the grid itself (Kronecker expansion).
+    
+    Solves ARC fractal tasks where a macro pattern defines the structural layout
+    of micro pattern copies.
+    """
+    if grid.size == 0: return grid.copy()
+    mask = (grid > 0).astype(int)
+    return np.kron(mask, grid)
+
+
+def tile_alternating_h(grid: np.ndarray, rep_h: int = 3, rep_w: int = 3) -> np.ndarray:
+    """Tiles grid rep_h x rep_w, with alternating horizontal flips on odd row-blocks."""
+    if grid.size == 0: return grid.copy()
+    row_blocks = []
+    flipped = np.fliplr(grid)
+    for r in range(rep_h):
+        base = flipped if (r % 2 == 1) else grid
+        row_blocks.append(np.tile(base, (1, rep_w)))
+    return np.vstack(row_blocks)
+
+
 # =====================================================================
 # 5. TOPOLOGY, FLOOD-FILL & SYMMETRY
 # =====================================================================
@@ -438,13 +461,23 @@ def outline_objects(grid: np.ndarray, outline_color: int = 1) -> np.ndarray:
     return out
 
 
-def complete_symmetry(grid: np.ndarray) -> np.ndarray:
-    """Completes horizontal symmetry by overlaying fliplr onto non-zero cells."""
+def complete_symmetry(grid: np.ndarray, axis: str = "horizontal") -> np.ndarray:
+    """Completes symmetry by overlaying flipped grid onto non-zero cells.
+
+    Args:
+        grid: Input 2D numpy array.
+        axis: "horizontal" (left-right reflection), "vertical" (top-bottom reflection), or "both".
+    """
     if grid.size == 0: return grid.copy()
     out = grid.copy()
-    flipped = np.fliplr(grid)
-    mask = (out == 0) & (flipped > 0)
-    out[mask] = flipped[mask]
+    if axis in ("horizontal", "both"):
+        flipped_h = np.fliplr(out)
+        mask_h = (out == 0) & (flipped_h > 0)
+        out[mask_h] = flipped_h[mask_h]
+    if axis in ("vertical", "both"):
+        flipped_v = np.flipud(out)
+        mask_v = (out == 0) & (flipped_v > 0)
+        out[mask_v] = flipped_v[mask_v]
     return out
 
 
@@ -477,6 +510,20 @@ def remove_smallest_object(grid: np.ndarray) -> np.ndarray:
     smallest_label = np.argmin(sizes) + 1
     out = grid.copy()
     out[labeled == smallest_label] = 0
+    return out
+
+
+def keep_smallest_object(grid: np.ndarray) -> np.ndarray:
+    """Keeps only the smallest connected component of non-zero pixels."""
+    if grid.size == 0: return grid.copy()
+    mask = (grid > 0)
+    labeled, num_features = scipy.ndimage.label(mask)
+    if num_features <= 1: return grid.copy()
+
+    sizes = [np.sum(labeled == i) for i in range(1, num_features + 1)]
+    smallest_label = np.argmin(sizes) + 1
+    out = grid.copy()
+    out[labeled != smallest_label] = 0
     return out
 
 
@@ -577,6 +624,8 @@ DSL_REGISTRY: Dict[str, Callable[..., np.ndarray]] = {
     "repeat_pattern_h": repeat_pattern_h,
     "repeat_pattern_v": repeat_pattern_v,
     "pad_grid": pad_grid,
+    "fractal_expansion": fractal_expansion,
+    "tile_alternating_h": tile_alternating_h,
     # Topology & Symmetry
     "flood_fill": flood_fill,
     "fill_enclosed": fill_enclosed,
@@ -586,6 +635,7 @@ DSL_REGISTRY: Dict[str, Callable[..., np.ndarray]] = {
     # Filtering & Selection
     "keep_largest_object": keep_largest_object,
     "remove_smallest_object": remove_smallest_object,
+    "keep_smallest_object": keep_smallest_object,
     "remove_noise": remove_noise,
     "sort_objects_by_size": sort_objects_by_size,
     "overlay": overlay,
@@ -601,7 +651,7 @@ DSL_REGISTRY.update({
     "rot270": rotate_270,
     "reflect_main_diagonal": lambda grid: np.array(grid, copy=True).T,
     "reflect_anti_diagonal": lambda grid: np.flipud(np.fliplr(np.array(grid, copy=True).T)),
-    "replace_color": lambda grid, old_color=0, new_color=0: change_color(grid, old_color, new_color),
+    "replace_color": lambda grid, old_color=0, new_color=0: change_color(grid, old_color=old_color, new_color=new_color),
     "fill_enclosed_holes": fill_enclosed,
     "gravity_down": lambda grid: apply_gravity(grid, direction="down"),
     "gravity_up": lambda grid: apply_gravity(grid, direction="up"),
@@ -610,9 +660,8 @@ DSL_REGISTRY.update({
     "complete_symmetry_horizontal": lambda grid: complete_symmetry(grid, axis="horizontal"),
     "complete_symmetry_vertical": lambda grid: complete_symmetry(grid, axis="vertical"),
     "crop_to_largest_object": lambda grid: crop_to_content(keep_largest_object(grid)),
-    "keep_smallest_object": remove_smallest_object,
-    "scale_up": lambda grid, factor=2: scale_grid(grid, factor_h=factor, factor_w=factor),
-    "pad": lambda grid, pad_width=1, fill_color=0: pad_grid(grid, pad_h=pad_width, pad_w=pad_width, fill_color=fill_color),
+    "scale_up": lambda grid, factor=2: scale_grid(grid, multiplier=factor),
+    "pad": lambda grid, pad_width=1, fill_color=0: pad_grid(grid, pad_size=pad_width, pad_color=fill_color),
     "crop": lambda grid, r0=0, c0=0, r1=None, c1=None: np.array(grid, copy=True)[r0:r1, c0:c1],
 })
 
@@ -620,35 +669,110 @@ DSL_REGISTRY.update({
 PRIMITIVE_REGISTRY = DSL_REGISTRY
 
 
+@dataclass
+class PrimitiveSpec:
+    """Principled metadata specification for an ARC DSL primitive."""
+    name: str
+    func: Callable[..., np.ndarray]
+    category: str
+    required_params: List[str]
+    optional_params: Dict[str, Any] = field(default_factory=dict)
+    param_types: Dict[str, type] = field(default_factory=dict)
+    valid_ranges: Dict[str, Any] = field(default_factory=dict)
+    preserves_dimensions: bool = True
+    preconditions: str = "grid.size > 0"
+    description: str = ""
+
+    @property
+    def is_zero_param(self) -> bool:
+        """True if primitive can be invoked directly with only the grid argument."""
+        return len(self.required_params) == 0
+
+
+# Complete Schema-Driven Registry mapping every primitive to its formal specification
+PRIMITIVE_SPECS: Dict[str, PrimitiveSpec] = {
+    # 1. Geometry - Rotations & Reflections (Preserve Dimensions)
+    "rotate_90": PrimitiveSpec("rotate_90", rotate_90, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Rotates grid 90 deg clockwise (swaps H, W if rectangular)"),
+    "rotate_180": PrimitiveSpec("rotate_180", rotate_180, "geometry", [], {}, {}, {}, True, "grid.size > 0", "Rotates grid 180 deg"),
+    "rotate_270": PrimitiveSpec("rotate_270", rotate_270, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Rotates grid 270 deg clockwise (swaps H, W if rectangular)"),
+    "flip_horizontal": PrimitiveSpec("flip_horizontal", flip_horizontal, "geometry", [], {}, {}, {}, True, "grid.size > 0", "Flips grid horizontally"),
+    "flip_vertical": PrimitiveSpec("flip_vertical", flip_vertical, "geometry", [], {}, {}, {}, True, "grid.size > 0", "Flips grid vertically"),
+    "rot90": PrimitiveSpec("rot90", rotate_90, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Alias for rotate_90"),
+    "rot180": PrimitiveSpec("rot180", rotate_180, "geometry", [], {}, {}, {}, True, "grid.size > 0", "Alias for rotate_180"),
+    "rot270": PrimitiveSpec("rot270", rotate_270, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Alias for rotate_270"),
+    "identity": PrimitiveSpec("identity", DSL_REGISTRY["identity"], "geometry", [], {}, {}, {}, True, "None", "Identity transformation (returns copy)"),
+    "transpose": PrimitiveSpec("transpose", DSL_REGISTRY["transpose"], "geometry", [], {}, {}, {}, False, "grid.size > 0", "Matrix transpose (swaps H, W)"),
+    "reflect_main_diagonal": PrimitiveSpec("reflect_main_diagonal", DSL_REGISTRY["reflect_main_diagonal"], "geometry", [], {}, {}, {}, False, "grid.size > 0", "Reflects across main diagonal (transpose)"),
+    "reflect_anti_diagonal": PrimitiveSpec("reflect_anti_diagonal", DSL_REGISTRY["reflect_anti_diagonal"], "geometry", [], {}, {}, {}, False, "grid.size > 0", "Reflects across anti-diagonal"),
+    
+    # Geometry - Mirroring (Changes Dimensions)
+    "mirror_horizontal": PrimitiveSpec("mirror_horizontal", mirror_horizontal, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Concatenates grid with fliplr(grid), doubling width"),
+    "mirror_vertical": PrimitiveSpec("mirror_vertical", mirror_vertical, "geometry", [], {}, {}, {}, False, "grid.size > 0", "Concatenates grid with flipud(grid), doubling height"),
+
+    # 2. Colors
+    "change_color": PrimitiveSpec("change_color", change_color, "color", ["old_color", "new_color"], {}, {"old_color": int, "new_color": int}, {"old_color": "0-9", "new_color": "0-9"}, True, "grid.size > 0", "Replaces all old_color cells with new_color"),
+    "replace_color": PrimitiveSpec("replace_color", DSL_REGISTRY["replace_color"], "color", [], {"old_color": 0, "new_color": 0}, {"old_color": int, "new_color": int}, {"old_color": "0-9", "new_color": "0-9"}, True, "grid.size > 0", "Alias for change_color with default 0"),
+    "keep_only_color": PrimitiveSpec("keep_only_color", keep_only_color, "color", ["target_color"], {}, {"target_color": int}, {"target_color": "0-9"}, True, "grid.size > 0", "Keeps only target_color, zeros other cells"),
+    "map_colors": PrimitiveSpec("map_colors", map_colors, "color", ["color_map_dict"], {}, {"color_map_dict": dict}, {}, True, "grid.size > 0", "Maps colors per dictionary"),
+    "invert_colors": PrimitiveSpec("invert_colors", invert_colors, "color", [], {}, {}, {}, True, "grid.size > 0", "Inverts non-zero colors: c -> 9 - c"),
+    "fill_with_color": PrimitiveSpec("fill_with_color", fill_with_color, "color", ["color"], {}, {"color": int}, {"color": "0-9"}, True, "grid.size > 0", "Fills grid with uniform color"),
+    "color_top_half": PrimitiveSpec("color_top_half", color_top_half, "color", ["color"], {}, {"color": int}, {"color": "0-9"}, True, "grid.size > 0", "Colors top half of grid"),
+
+    # 3. Movement & Gravity
+    "move_up": PrimitiveSpec("move_up", move_up, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Moves color_id up by 1 row"),
+    "move_down": PrimitiveSpec("move_down", move_down, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Moves color_id down by 1 row"),
+    "move_left": PrimitiveSpec("move_left", move_left, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Moves color_id left by 1 col"),
+    "move_right": PrimitiveSpec("move_right", move_right, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Moves color_id right by 1 col"),
+    "slide_up": PrimitiveSpec("slide_up", slide_up, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Slides color_id up to edge/obstacle"),
+    "slide_down": PrimitiveSpec("slide_down", slide_down, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Slides color_id down to edge/obstacle"),
+    "slide_left": PrimitiveSpec("slide_left", slide_left, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Slides color_id left to edge/obstacle"),
+    "slide_right": PrimitiveSpec("slide_right", slide_right, "movement", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Slides color_id right to edge/obstacle"),
+    "apply_gravity": PrimitiveSpec("apply_gravity", apply_gravity, "movement", [], {"direction": "down"}, {"direction": str}, {"direction": ["down", "up", "left", "right"]}, True, "grid.size > 0", "Applies directional gravity"),
+    "gravity_down": PrimitiveSpec("gravity_down", DSL_REGISTRY["gravity_down"], "movement", [], {}, {}, {}, True, "grid.size > 0", "Drops non-zero cells downwards"),
+    "gravity_up": PrimitiveSpec("gravity_up", DSL_REGISTRY["gravity_up"], "movement", [], {}, {}, {}, True, "grid.size > 0", "Pulls non-zero cells upwards"),
+    "gravity_left": PrimitiveSpec("gravity_left", DSL_REGISTRY["gravity_left"], "movement", [], {}, {}, {}, True, "grid.size > 0", "Pulls non-zero cells leftwards"),
+    "gravity_right": PrimitiveSpec("gravity_right", DSL_REGISTRY["gravity_right"], "movement", [], {}, {}, {}, True, "grid.size > 0", "Pulls non-zero cells rightwards"),
+
+    # 4. Cropping, Scaling & Tiling
+    "crop_to_content": PrimitiveSpec("crop_to_content", crop_to_content, "cropping_scaling", [], {}, {}, {}, False, "np.any(grid > 0)", "Crops to bounding box of all non-zero cells"),
+    "crop_background": PrimitiveSpec("crop_background", crop_background, "cropping_scaling", [], {"bg_color": 0}, {"bg_color": int}, {"bg_color": "0-9"}, False, "grid.size > 0", "Crops to bounding box excluding bg_color"),
+    "extract_color_bounding_box": PrimitiveSpec("extract_color_bounding_box", extract_color_bounding_box, "cropping_scaling", ["target_color"], {}, {"target_color": int}, {"target_color": "0-9"}, False, "target_color in grid", "Crops to bounding box of target_color"),
+    "crop_to_largest_object": PrimitiveSpec("crop_to_largest_object", DSL_REGISTRY["crop_to_largest_object"], "cropping_scaling", [], {}, {}, {}, False, "np.any(grid > 0)", "Keeps largest component and crops to its bbox"),
+    "tile_grid": PrimitiveSpec("tile_grid", tile_grid, "cropping_scaling", ["multiplier"], {}, {"multiplier": int}, {"multiplier": "2-5"}, False, "grid.size > 0", "Tiles grid multiplier x multiplier"),
+    "scale_grid": PrimitiveSpec("scale_grid", scale_grid, "cropping_scaling", ["multiplier"], {}, {"multiplier": int}, {"multiplier": "2-5"}, False, "grid.size > 0", "Upscales each cell into multiplier x multiplier block"),
+    "scale_up": PrimitiveSpec("scale_up", DSL_REGISTRY["scale_up"], "cropping_scaling", [], {"factor": 2}, {"factor": int}, {"factor": "2-5"}, False, "grid.size > 0", "Upscales each cell with default factor=2"),
+    "repeat_pattern_h": PrimitiveSpec("repeat_pattern_h", repeat_pattern_h, "cropping_scaling", [], {}, {}, {}, False, "grid.size > 0", "Repeats grid horizontally [G | G]"),
+    "repeat_pattern_v": PrimitiveSpec("repeat_pattern_v", repeat_pattern_v, "cropping_scaling", [], {}, {}, {}, False, "grid.size > 0", "Repeats grid vertically [G / G]"),
+    "pad_grid": PrimitiveSpec("pad_grid", pad_grid, "cropping_scaling", ["pad_size"], {"pad_color": 0}, {"pad_size": int, "pad_color": int}, {"pad_size": "1-5", "pad_color": "0-9"}, False, "grid.size > 0", "Pads borders with pad_size"),
+    "pad": PrimitiveSpec("pad", DSL_REGISTRY["pad"], "cropping_scaling", [], {"pad_width": 1, "fill_color": 0}, {"pad_width": int, "fill_color": int}, {}, False, "grid.size > 0", "Pads borders with default width=1"),
+    "crop": PrimitiveSpec("crop", DSL_REGISTRY["crop"], "cropping_scaling", [], {"r0": 0, "c0": 0, "r1": None, "c1": None}, {}, {}, False, "grid.size > 0", "Slice crop"),
+    "fractal_expansion": PrimitiveSpec("fractal_expansion", fractal_expansion, "cropping_scaling", [], {}, {}, {}, False, "grid.size > 0", "Kronecker expansion of non-zero pattern with grid"),
+    "tile_alternating_h": PrimitiveSpec("tile_alternating_h", tile_alternating_h, "cropping_scaling", [], {"rep_h": 3, "rep_w": 3}, {"rep_h": int, "rep_w": int}, {}, False, "grid.size > 0", "Tiles grid alternating horizontal flips on odd rows"),
+
+    # 5. Topology, Flood-Fill & Symmetry
+    "flood_fill": PrimitiveSpec("flood_fill", flood_fill, "topology_symmetry", ["r", "c", "new_color"], {}, {"r": int, "c": int, "new_color": int}, {}, True, "0 <= r < H, 0 <= c < W", "Connected flood fill from (r, c)"),
+    "fill_enclosed": PrimitiveSpec("fill_enclosed", fill_enclosed, "topology_symmetry", ["fill_color"], {}, {"fill_color": int}, {"fill_color": "0-9"}, True, "grid.size > 0", "Fills interior enclosed 0-holes with fill_color"),
+    "fill_enclosed_holes": PrimitiveSpec("fill_enclosed_holes", fill_enclosed, "topology_symmetry", ["fill_color"], {}, {"fill_color": int}, {"fill_color": "0-9"}, True, "grid.size > 0", "Alias for fill_enclosed"),
+    "hollow_out": PrimitiveSpec("hollow_out", hollow_out, "topology_symmetry", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Hollows out objects of color_id"),
+    "outline_objects": PrimitiveSpec("outline_objects", outline_objects, "topology_symmetry", [], {"outline_color": 1}, {"outline_color": int}, {"outline_color": "0-9"}, True, "grid.size > 0", "Draws outline border around non-zero objects"),
+    "complete_symmetry": PrimitiveSpec("complete_symmetry", complete_symmetry, "topology_symmetry", [], {"axis": "horizontal"}, {"axis": str}, {"axis": ["horizontal", "vertical", "both"]}, True, "grid.size > 0", "Completes symmetry across specified axis"),
+    "complete_symmetry_horizontal": PrimitiveSpec("complete_symmetry_horizontal", DSL_REGISTRY["complete_symmetry_horizontal"], "topology_symmetry", [], {}, {}, {}, True, "grid.size > 0", "Completes horizontal symmetry"),
+    "complete_symmetry_vertical": PrimitiveSpec("complete_symmetry_vertical", DSL_REGISTRY["complete_symmetry_vertical"], "topology_symmetry", [], {}, {}, {}, True, "grid.size > 0", "Completes vertical symmetry"),
+
+    # 6. Objects & Selection
+    "keep_largest_object": PrimitiveSpec("keep_largest_object", keep_largest_object, "objects", [], {}, {}, {}, True, "grid.size > 0", "Keeps only the largest connected component"),
+    "remove_smallest_object": PrimitiveSpec("remove_smallest_object", remove_smallest_object, "objects", [], {}, {}, {}, True, "grid.size > 0", "Removes the smallest connected component"),
+    "keep_smallest_object": PrimitiveSpec("keep_smallest_object", keep_smallest_object, "objects", [], {}, {}, {}, True, "grid.size > 0", "Keeps only the smallest connected component"),
+    "remove_noise": PrimitiveSpec("remove_noise", remove_noise, "objects", [], {}, {}, {}, True, "grid.size > 0", "Removes isolated single-pixel objects"),
+    "sort_objects_by_size": PrimitiveSpec("sort_objects_by_size", sort_objects_by_size, "objects", [], {}, {}, {}, False, "grid.size > 0", "Sorts components horizontally by size"),
+    "overlay": PrimitiveSpec("overlay", overlay, "objects", ["grid_fg"], {}, {}, {}, True, "grid_bg.shape == grid_fg.shape", "Overlays non-zero pixels of fg onto bg"),
+    "draw_line_hv": PrimitiveSpec("draw_line_hv", draw_line_hv, "objects", ["r1", "c1", "r2", "c2", "color_id"], {}, {}, {}, True, "grid.size > 0", "Draws horizontal or vertical line"),
+}
+
+
 def get_primitives_by_category() -> Dict[str, List[str]]:
     """Group registered primitives into semantic categories."""
-    return {
-        "geometry": [
-            "identity", "transpose", "rotate_90", "rotate_180", "rotate_270",
-            "rot90", "rot180", "rot270", "flip_horizontal", "flip_vertical",
-            "mirror_horizontal", "mirror_vertical", "reflect_main_diagonal", "reflect_anti_diagonal"
-        ],
-        "color": [
-            "change_color", "replace_color", "keep_only_color", "map_colors",
-            "invert_colors", "fill_with_color", "color_top_half"
-        ],
-        "movement": [
-            "move_up", "move_down", "move_left", "move_right",
-            "slide_up", "slide_down", "slide_left", "slide_right",
-            "apply_gravity", "gravity_down", "gravity_up", "gravity_left", "gravity_right"
-        ],
-        "cropping_scaling": [
-            "crop_to_content", "crop_background", "extract_color_bounding_box",
-            "crop_to_largest_object", "tile_grid", "scale_grid", "scale_up",
-            "repeat_pattern_h", "repeat_pattern_v", "pad_grid", "pad", "crop"
-        ],
-        "topology_symmetry": [
-            "flood_fill", "fill_enclosed", "fill_enclosed_holes", "hollow_out",
-            "outline_objects", "complete_symmetry", "complete_symmetry_horizontal",
-            "complete_symmetry_vertical"
-        ],
-        "objects": [
-            "keep_largest_object", "remove_smallest_object", "keep_smallest_object",
-            "remove_noise", "sort_objects_by_size", "overlay", "draw_line_hv"
-        ],
-    }
+    categories: Dict[str, List[str]] = {}
+    for name, spec in PRIMITIVE_SPECS.items():
+        categories.setdefault(spec.category, []).append(name)
+    return categories

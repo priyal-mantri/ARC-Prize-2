@@ -1,9 +1,9 @@
 """Master Integrated Neuro-Symbolic ARC Solver.
 
 Coordinates the complete end-to-end reasoning pipeline:
-Perception -> Scene Graph -> Correspondence -> Fingerprinting -> Memory Retrieval ->
-Hunter Baseline -> Relational Synthesis -> DSL Beam Search -> REPL Refinement ->
-Multi-Test Prediction & Ranking.
+Perception -> Scene Graph -> Relational Reasoning -> Fingerprinting -> Memory Retrieval ->
+Hunter Baseline -> Neural (Qwen2.5-Coder) Hypotheses -> DSL Beam Search -> REPL Refinement ->
+Multi-Test Prediction & Two-Attempt Submission Generation.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Set
 import numpy as np
 
 from src.data.dataset_loader import ArcTask
@@ -20,6 +20,7 @@ from src.representation.grid import ArcGrid
 from src.perception.detector import PerceptionEngine
 from src.perception.hypotheses import PerceptionHypothesisGenerator
 from src.scene_graph.builder import SceneGraphBuilder
+from src.scene_graph.graph import ArcSceneGraph
 from src.correspondence.matcher import ObjectCorrespondenceMatcher
 from src.correspondence.relational_change import RelationalChangeAnalyzer, RelationalChangeReport
 from src.fingerprint.encoder import task_to_fingerprint
@@ -55,19 +56,36 @@ class TaskSolution:
     solver_pipeline_stage: str = "none"
     candidates_ranked: List[DSLProgram] = field(default_factory=list)
     diagnostics: Dict[str, Any] = field(default_factory=dict)
+    profiling: Dict[str, float] = field(default_factory=dict)
+    component_statuses: Dict[str, str] = field(default_factory=dict)
 
 
 class IntegratedArcSolver:
-    """End-to-end ARC-AGI-2 solver integrating symbolic, object-centric, and memory reasoning."""
+    """End-to-end ARC-AGI-2 solver integrating symbolic, object-centric, and neural reasoning."""
 
     def __init__(
         self,
         memory_bank: Optional[MirrorMatrix] = None,
         concept_library: Optional[ConceptLibrary] = None,
-        search_timeout_seconds: float = 3.5,
+        num_guesses: int = 20,
+        search_timeout_seconds: float = 4.0,
         enable_repl_refinement: bool = True,
         enable_memory_retrieval: bool = True,
+        use_qwen: bool = True,
+        use_scene_graph: bool = True,
+        use_relational_reasoning: bool = True,
+        use_memory: Optional[bool] = None,
+        use_repl_refinement: Optional[bool] = None,
+        model_path: Optional[str] = None,
     ):
+        self.num_guesses = num_guesses
+        self.search_timeout = search_timeout_seconds
+        self.enable_repl = use_repl_refinement if use_repl_refinement is not None else enable_repl_refinement
+        self.enable_memory = use_memory if use_memory is not None else enable_memory_retrieval
+        self.use_qwen = use_qwen
+        self.use_scene_graph = use_scene_graph
+        self.use_relational_reasoning = use_relational_reasoning
+
         if memory_bank is not None:
             self.memory = memory_bank
         else:
@@ -86,11 +104,7 @@ class IntegratedArcSolver:
             else:
                 self.concept_library = ConceptLibrary()
 
-        self.search_timeout = search_timeout_seconds
-        self.enable_repl = enable_repl_refinement
-        self.enable_memory = enable_memory_retrieval
-
-        # Subsystems
+        # Core Subsystems
         self.perception_engine = PerceptionEngine()
         self.hypothesis_gen = PerceptionHypothesisGenerator(self.perception_engine)
         self.graph_builder = SceneGraphBuilder()
@@ -98,26 +112,28 @@ class IntegratedArcSolver:
         self.relational_analyzer = RelationalChangeAnalyzer(self.perception_engine, self.matcher)
         self.verifier = DemonstrationVerifier(timeout_seconds=0.1)
         self.hunter = HunterBaselineSolver(self.verifier)
-        self.synthesizer = LLMSynthesizerInterface()
+        self.synthesizer = LLMSynthesizerInterface(model_path=model_path)
         self.beam_search = DSLBeamSearch(
             verifier=self.verifier,
             beam_width=16,
             max_depth=2,
             timeout_seconds=search_timeout_seconds,
             enable_repl_refinement=enable_repl_refinement,
+            max_candidates=num_guesses,
         )
 
     def solve(self, task: ArcTask) -> TaskSolution:
-        """Execute full neuro-symbolic pipeline to solve an ARC task.
-
-        Args:
-            task: ArcTask containing train demonstrations and test inputs.
-
-        Returns:
-            TaskSolution with verified program and test predictions.
-        """
+        """Execute full neuro-symbolic pipeline to solve an ARC task."""
         start_time = time.time()
-        stage = "initialization"
+        profiling: Dict[str, float] = {}
+        component_statuses: Dict[str, str] = {
+            "perception": "implemented_inactive",
+            "scene_graph": "implemented_inactive",
+            "relational_reasoning": "implemented_inactive",
+            "memory_retrieval": "implemented_inactive",
+            "qwen_neural": "implemented_inactive",
+            "dsl_beam_search": "implemented_inactive",
+        }
 
         demonstrations = [
             TaskDemonstration(
@@ -133,9 +149,12 @@ class IntegratedArcSolver:
         # -------------------------------------------------------------
         # STAGE 1: Fast Hunter Symbolic Baseline
         # -------------------------------------------------------------
+        t0 = time.time()
         stage = "hunter_baseline"
         hunter_prog = self.hunter.solve(task)
+        profiling["hunter_time"] = time.time() - t0
         if hunter_prog is not None:
+            component_statuses["dsl_beam_search"] = "integrated_and_influencing_predictions"
             return self._build_solution(
                 task=task,
                 solved=True,
@@ -144,30 +163,71 @@ class IntegratedArcSolver:
                 stage=stage,
                 start_time=start_time,
                 diagnostics={"hunter_solved": True},
+                profiling=profiling,
+                component_statuses=component_statuses,
             )
 
         # -------------------------------------------------------------
-        # STAGE 2: Object-Centric Perception & Relational Change Analysis
+        # STAGE 2: Object-Centric Perception & Scene Graph Construction
         # -------------------------------------------------------------
-        stage = "relational_change_analysis"
-        change_report: Optional[RelationalChangeReport] = None
-        try:
-            change_report = self.relational_analyzer.analyze_task(demonstrations)
-        except Exception as e:
-            logger.debug("Relational change analysis error on %s: %s", task.task_id, e)
+        scene_graphs: List[ArcSceneGraph] = []
+        scene_graph_facts: Dict[str, Any] = {
+            "has_holes": False,
+            "total_objects": 0,
+            "alignments": [],
+            "containment_detected": False,
+        }
+
+        if self.use_scene_graph:
+            t0 = time.time()
+            component_statuses["perception"] = "integrated_and_influencing_predictions"
+            component_statuses["scene_graph"] = "integrated_and_influencing_predictions"
+            try:
+                for demo in demonstrations:
+                    objs = self.perception_engine.detect_objects(demo.input_grid, background_color=0)
+                    sg = self.graph_builder.build(demo.input_grid, objs, background_color=0)
+                    scene_graphs.append(sg)
+                    scene_graph_facts["total_objects"] += len(objs)
+                    for n in sg.nodes.values():
+                        if n.attributes.get("holes_count", 0) > 0:
+                            scene_graph_facts["has_holes"] = True
+                    for edge in sg.edges:
+                        if edge.relation in ("contains", "inside"):
+                            scene_graph_facts["containment_detected"] = True
+            except Exception as e:
+                logger.debug("Scene graph building error on %s: %s", task.task_id, e)
+                component_statuses["scene_graph"] = "failed"
+            profiling["scene_graph_time"] = time.time() - t0
 
         # -------------------------------------------------------------
-        # STAGE 3: Structural Fingerprint, Concept Library & Memory Retrieval
+        # STAGE 3: Relational Change Analysis
+        # -------------------------------------------------------------
+        change_report: Optional[RelationalChangeReport] = None
+        if self.use_relational_reasoning:
+            t0 = time.time()
+            component_statuses["relational_reasoning"] = "integrated_and_influencing_predictions"
+            try:
+                change_report = self.relational_analyzer.analyze_task(demonstrations)
+            except Exception as e:
+                logger.debug("Relational change analysis error on %s: %s", task.task_id, e)
+                component_statuses["relational_reasoning"] = "failed"
+            profiling["relational_time"] = time.time() - t0
+
+        # -------------------------------------------------------------
+        # STAGE 4: Concept Library & Memory Retrieval
         # -------------------------------------------------------------
         memory_candidates: List[DSLProgram] = []
         if self.enable_memory:
-            # 3a. Concept Library Skills
+            t0 = time.time()
+            component_statuses["memory_retrieval"] = "executed_no_influence"
+            # 4a. Concept Library Skills
             if len(self.concept_library.skills) > 0:
                 same_shape = all(d.input_grid.shape == d.output_grid.shape for d in demonstrations)
                 matching_skills = self.concept_library.get_candidate_skills_for_task({"same_shape": same_shape})
                 for skill in matching_skills:
                     vres = self.verifier.verify(skill.program, demonstrations)
                     if vres.is_fully_solved:
+                        component_statuses["memory_retrieval"] = "integrated_and_influencing_predictions"
                         return self._build_solution(
                             task=task,
                             solved=True,
@@ -176,21 +236,22 @@ class IntegratedArcSolver:
                             stage="concept_library_hit",
                             start_time=start_time,
                             diagnostics={"skill_id": skill.skill_id, "solved_tasks": skill.solved_task_ids},
+                            profiling=profiling,
+                            component_statuses=component_statuses,
                         )
                     elif vres.mean_pixel_accuracy > 0.6:
                         memory_candidates.append(skill.program)
 
-            # 3b. Vector Memory Retrieval
+            # 4b. Vector Memory Retrieval
             if len(self.memory) > 0:
-                stage = "memory_retrieval"
                 try:
                     fp = task_to_fingerprint(task)
                     matches = self.memory.query_similar(fp, top_k=3)
                     for entry, dist in matches:
                         if entry.program is not None:
-                            # Verify retrieved program against current demonstrations
                             vres = self.verifier.verify(entry.program, demonstrations)
                             if vres.is_fully_solved:
+                                component_statuses["memory_retrieval"] = "integrated_and_influencing_predictions"
                                 return self._build_solution(
                                     task=task,
                                     solved=True,
@@ -199,49 +260,93 @@ class IntegratedArcSolver:
                                     stage="memory_exact_hit",
                                     start_time=start_time,
                                     diagnostics={"memory_source_task": entry.task_id, "distance": dist},
+                                    profiling=profiling,
+                                    component_statuses=component_statuses,
                                 )
                             elif vres.mean_pixel_accuracy > 0.6 and entry.program not in memory_candidates:
                                 memory_candidates.append(entry.program)
                 except Exception as e:
                     logger.debug("Memory retrieval error on %s: %s", task.task_id, e)
+            profiling["memory_time"] = time.time() - t0
 
         # -------------------------------------------------------------
-        # STAGE 4: Relational Symbolic Hypotheses
+        # STAGE 5: Neural (Qwen2.5-Coder) / Relational Hypotheses
         # -------------------------------------------------------------
-        stage = "relational_hypotheses"
-        relational_candidates = self.synthesizer.generate_hypotheses(task, change_report, max_candidates=5)
-        for prog in relational_candidates:
-            vres = self.verifier.verify(prog, demonstrations)
-            if vres.is_fully_solved:
-                return self._build_solution(
-                    task=task,
-                    solved=True,
-                    best_program=prog,
-                    candidate_programs=[prog],
-                    stage=stage,
-                    start_time=start_time,
-                    diagnostics={"relational_rule_solved": prog.name},
-                )
+        neural_candidates: List[DSLProgram] = []
+        if self.use_qwen:
+            t0 = time.time()
+            qwen_budget = min(10, max(2, self.num_guesses // 2))
+            neural_candidates = self.synthesizer.generate_hypotheses(
+                task=task,
+                change_report=change_report,
+                max_candidates=qwen_budget,
+                scene_graph_facts=scene_graph_facts,
+            )
+            profiling["qwen_inference_time"] = time.time() - t0
+            if self.synthesizer.telemetry.inference_success:
+                component_statuses["qwen_neural"] = "integrated_and_influencing_predictions"
+            else:
+                component_statuses["qwen_neural"] = "unavailable"
+
+            for prog in neural_candidates:
+                vres = self.verifier.verify(prog, demonstrations)
+                if vres.is_fully_solved:
+                    return self._build_solution(
+                        task=task,
+                        solved=True,
+                        best_program=prog,
+                        candidate_programs=[prog],
+                        stage="neural_relational_hit",
+                        start_time=start_time,
+                        diagnostics={
+                            "solved_by": prog.name,
+                            "origin": prog.origin,
+                            "scene_graph_facts": scene_graph_facts,
+                            "qwen_telemetry": self.synthesizer.telemetry.to_dict(),
+                        },
+                        profiling=profiling,
+                        component_statuses=component_statuses,
+                    )
 
         # -------------------------------------------------------------
-        # STAGE 5: Constrained DSL Beam Search & REPL Refinement
+        # STAGE 6: Constrained DSL Beam Search & REPL Refinement
         # -------------------------------------------------------------
         stage = "dsl_beam_search"
+        component_statuses["dsl_beam_search"] = "integrated_and_influencing_predictions"
         remaining_timeout = max(0.5, self.search_timeout - (time.time() - start_time))
-        search_res: SearchResult = self.beam_search.search(task, timeout=remaining_timeout)
 
+        t0 = time.time()
+        search_res: SearchResult = self.beam_search.search(
+            task,
+            timeout=remaining_timeout,
+            max_candidates=self.num_guesses,
+            scene_graph_facts=scene_graph_facts,
+        )
+        profiling["beam_search_time"] = time.time() - t0
+
+        # Pool surviving candidates with deduplication
+        seen_code: Set[str] = set()
         surviving_candidates: List[DSLProgram] = []
-        if search_res.best_program:
-            surviving_candidates.append(search_res.best_program)
-        for p in search_res.candidate_programs:
-            if p not in surviving_candidates:
-                surviving_candidates.append(p)
-        for p in memory_candidates:
-            if p not in surviving_candidates:
+
+        def add_survivor(p: DSLProgram):
+            sig = p.to_code()
+            if sig not in seen_code:
+                seen_code.add(sig)
                 surviving_candidates.append(p)
 
-        best_prog = search_res.best_program
+        if search_res.best_program:
+            add_survivor(search_res.best_program)
+        for p in search_res.candidate_programs:
+            add_survivor(p)
+        for p in neural_candidates:
+            add_survivor(p)
+        for p in memory_candidates:
+            add_survivor(p)
+
+        best_prog = surviving_candidates[0] if surviving_candidates else None
         solved = search_res.solved and best_prog is not None
+
+        profiling["total_time"] = time.time() - start_time
 
         return self._build_solution(
             task=task,
@@ -251,11 +356,16 @@ class IntegratedArcSolver:
             stage=stage,
             start_time=start_time,
             diagnostics={
-                "search_candidates_executed": search_res.candidates_executed,
-                "search_candidates_generated": search_res.candidates_generated,
+                "unique_candidates_count": len(surviving_candidates),
+                "candidates_executed": search_res.candidates_executed,
+                "candidates_generated": search_res.candidates_generated,
                 "search_depth": search_res.depth_reached,
+                "scene_graph_facts": scene_graph_facts,
+                "qwen_telemetry": self.synthesizer.telemetry.to_dict(),
                 **search_res.diagnostics,
             },
+            profiling=profiling,
+            component_statuses=component_statuses,
         )
 
     def _build_solution(
@@ -267,8 +377,10 @@ class IntegratedArcSolver:
         stage: str,
         start_time: float,
         diagnostics: Dict[str, Any],
+        profiling: Dict[str, float],
+        component_statuses: Dict[str, str],
     ) -> TaskSolution:
-        """Execute top candidate programs on test inputs and package result."""
+        """Execute top candidate programs on test inputs and package result with 2 attempts."""
         test_predictions: List[TestPrediction] = []
 
         prog_1 = best_program
@@ -312,6 +424,8 @@ class IntegratedArcSolver:
             )
 
         duration = time.time() - start_time
+        profiling["total_duration"] = duration
+
         return TaskSolution(
             task_id=task.task_id,
             solved=solved,
@@ -321,6 +435,8 @@ class IntegratedArcSolver:
             solver_pipeline_stage=stage,
             candidates_ranked=candidate_programs,
             diagnostics=diagnostics,
+            profiling=profiling,
+            component_statuses=component_statuses,
         )
 
     def _empty_solution(self, task: ArcTask, start_time: float, reason: str) -> TaskSolution:

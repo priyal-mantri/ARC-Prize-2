@@ -10,10 +10,11 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
+import numpy as np
 
 from src.data.dataset_loader import ArcTask
 from src.representation.grid import ArcGrid
-from src.dsl.primitives import PRIMITIVE_REGISTRY, get_primitives_by_category
+from src.dsl.primitives import PRIMITIVE_REGISTRY, PRIMITIVE_SPECS, get_primitives_by_category
 from src.dsl.program import DSLProgram, PrimitiveCall
 from src.search.constraint_filter import ConstraintFilter
 from src.search.verifier import DemonstrationVerifier, VerificationResult, TaskDemonstration
@@ -48,6 +49,7 @@ class DSLBeamSearch:
         max_depth: int = 2,
         timeout_seconds: float = 4.0,
         enable_repl_refinement: bool = True,
+        max_candidates: int = 40,
     ):
         self.verifier = verifier or DemonstrationVerifier(timeout_seconds=0.1)
         self.refiner = REPLRefiner(self.verifier)
@@ -55,19 +57,29 @@ class DSLBeamSearch:
         self.max_depth = max_depth
         self.timeout_seconds = timeout_seconds
         self.enable_repl_refinement = enable_repl_refinement
+        self.max_candidates = max_candidates
 
-    def search(self, task: ArcTask, timeout: Optional[float] = None) -> SearchResult:
+    def search(
+        self,
+        task: ArcTask,
+        timeout: Optional[float] = None,
+        max_candidates: Optional[int] = None,
+        scene_graph_facts: Optional[Dict[str, Any]] = None,
+    ) -> SearchResult:
         """Execute constrained DSL search to find programs explaining all training demonstrations.
 
         Args:
             task: The ArcTask to solve.
             timeout: Optional override for search timeout.
+            max_candidates: Optional override for candidate proposal budget.
+            scene_graph_facts: Optional structural facts from scene graph reasoning.
 
         Returns:
             SearchResult detailing search outcome, best program, and stats.
         """
         start_time = time.time()
         deadline = start_time + (timeout if timeout is not None else self.timeout_seconds)
+        budget = max_candidates if max_candidates is not None else self.max_candidates
 
         # Convert task train examples to TaskDemonstrations
         demonstrations = [
@@ -96,83 +108,138 @@ class DSLBeamSearch:
         # Step 0: Extract task-specific parameters (colors, scale factors)
         in_colors: Set[int] = set()
         out_colors: Set[int] = set()
+        task_has_changes = False
+
         for demo in demonstrations:
             in_colors.update(demo.input_grid.unique_colors)
             out_colors.update(demo.output_grid.unique_colors)
+            if not np.array_equal(demo.input_grid.to_numpy(), demo.output_grid.to_numpy()):
+                task_has_changes = True
 
-        all_colors = in_colors.union(out_colors)
+        new_colors = out_colors - in_colors
+        eliminated_colors = in_colors - out_colors
 
-        # Generate Depth 1 candidate programs
+        # Generate Depth 1 candidate programs using Schema-Driven Registry
         depth1_programs: List[DSLProgram] = []
+        seen_signatures: Set[str] = set()
 
-        # 1. Zero-parameter primitives
-        for name in PRIMITIVE_REGISTRY.keys():
+        def add_candidate(prog: DSLProgram) -> bool:
+            nonlocal candidates_generated
+            if budget is not None and len(depth1_programs) >= budget:
+                return False
+            sig = prog.to_code()
+            if sig in seen_signatures:
+                return False
+            seen_signatures.add(sig)
+            depth1_programs.append(prog)
+            candidates_generated += 1
+            return True
+
+        # Scene graph structural hints
+        has_holes = False
+        if scene_graph_facts and scene_graph_facts.get("has_holes"):
+            has_holes = True
+
+        # High-priority parameterized candidates guided by scene graph & invariants:
+        # 1. Enclosed region filling if new colors exist or scene graph indicates holes
+        if new_colors or has_holes:
+            fill_candidates = list(new_colors) if new_colors else [c for c in out_colors if c != 0]
+            for fc in fill_candidates:
+                add_candidate(DSLProgram(
+                    name=f"fill_enclosed_{fc}",
+                    calls=[PrimitiveCall("fill_enclosed", {"fill_color": fc})],
+                    origin="scene_graph_topology_hint",
+                ))
+
+        # 2. Schema-Driven Zero-parameter primitives, prioritized by dimensional behavior
+        compatible_zero_param = []
+        other_zero_param = []
+        for name, spec in PRIMITIVE_SPECS.items():
             if not constraints.is_primitive_admissible(name):
                 candidates_pruned += 1
                 continue
 
-            # Check if primitive requires parameters
-            if name in {
-                "replace_color", "crop", "pad", "scale_up", "tile_grid",
-                "keep_only_color", "remove_color", "keep_largest_color", "keep_smallest_color"
-            }:
-                continue
+            if spec.is_zero_param:
+                if constraints.task_constraints and constraints.task_constraints.dimensions_preserved:
+                    if spec.preserves_dimensions:
+                        compatible_zero_param.append(name)
+                    else:
+                        other_zero_param.append(name)
+                else:
+                    if not spec.preserves_dimensions:
+                        compatible_zero_param.append(name)
+                    else:
+                        other_zero_param.append(name)
 
-            prog = DSLProgram(name=name, calls=[PrimitiveCall(name)], origin="enumerative_d1")
-            depth1_programs.append(prog)
-            candidates_generated += 1
+        for name in compatible_zero_param + other_zero_param:
+            add_candidate(DSLProgram(
+                name=name,
+                calls=[PrimitiveCall(name)],
+                origin="enumerative_zero_param_d1",
+            ))
 
-        # 2. Parameterized primitives tailored to colors in task
-        # replace_color(c1, c2)
-        if constraints.is_primitive_admissible("replace_color"):
+        # 3. Principled Parameterized Primitives tailored to demonstrations
+        # Color replacement
+        if constraints.is_primitive_admissible("replace_color") or constraints.is_primitive_admissible("change_color"):
             for c_in in in_colors:
                 for c_out in out_colors:
                     if c_in != c_out:
-                        prog = DSLProgram(
+                        add_candidate(DSLProgram(
                             name=f"replace_{c_in}_with_{c_out}",
                             calls=[PrimitiveCall("replace_color", {"old_color": c_in, "new_color": c_out})],
                             origin="enumerative_color_d1",
-                        )
-                        depth1_programs.append(prog)
-                        candidates_generated += 1
+                        ))
 
-        # keep_only_color(c)
+        # Keep only color
         if constraints.is_primitive_admissible("keep_only_color"):
             for c in in_colors:
-                prog = DSLProgram(
-                    name=f"keep_only_{c}",
-                    calls=[PrimitiveCall("keep_only_color", {"color": c})],
-                    origin="enumerative_color_d1",
-                )
-                depth1_programs.append(prog)
-                candidates_generated += 1
+                if c != 0:
+                    add_candidate(DSLProgram(
+                        name=f"keep_only_{c}",
+                        calls=[PrimitiveCall("keep_only_color", {"target_color": c})],
+                        origin="enumerative_color_d1",
+                    ))
 
-        # scale_up(factor)
-        if constraints.is_primitive_admissible("scale_up"):
+        # Scaling and Tiling
+        if constraints.is_primitive_admissible("scale_grid") or constraints.is_primitive_admissible("scale_up"):
             for factor in [2, 3]:
-                prog = DSLProgram(
-                    name=f"scale_up_{factor}",
-                    calls=[PrimitiveCall("scale_up", {"factor": factor})],
+                add_candidate(DSLProgram(
+                    name=f"scale_grid_{factor}",
+                    calls=[PrimitiveCall("scale_grid", {"multiplier": factor})],
                     origin="enumerative_scale_d1",
-                )
-                depth1_programs.append(prog)
-                candidates_generated += 1
+                ))
 
-        # tile_grid(times_h, times_w)
         if constraints.is_primitive_admissible("tile_grid"):
-            for th in [1, 2, 3]:
-                for tw in [1, 2, 3]:
-                    if th == 1 and tw == 1:
-                        continue
-                    prog = DSLProgram(
-                        name=f"tile_{th}x{tw}",
-                        calls=[PrimitiveCall("tile_grid", {"times_h": th, "times_w": tw})],
-                        origin="enumerative_tile_d1",
-                    )
-                    depth1_programs.append(prog)
-                    candidates_generated += 1
+            for th in [2, 3]:
+                add_candidate(DSLProgram(
+                    name=f"tile_grid_{th}",
+                    calls=[PrimitiveCall("tile_grid", {"multiplier": th})],
+                    origin="enumerative_tile_d1",
+                ))
 
-        # Evaluate Depth 1
+        # Alternating horizontal tiling
+        if constraints.is_primitive_admissible("tile_alternating_h"):
+            add_candidate(DSLProgram(
+                name="tile_alternating_h_3x3",
+                calls=[PrimitiveCall("tile_alternating_h", {"rep_h": 3, "rep_w": 3})],
+                origin="enumerative_tile_d1",
+            ))
+
+        # Crop to color bounding box
+        if constraints.is_primitive_admissible("extract_color_bounding_box"):
+            for c in in_colors:
+                if c != 0:
+                    add_candidate(DSLProgram(
+                        name=f"bbox_{c}",
+                        calls=[PrimitiveCall("extract_color_bounding_box", {"target_color": c})],
+                        origin="enumerative_crop_d1",
+                    ))
+
+        # Respect candidate proposal budget
+        if budget and len(depth1_programs) > budget:
+            depth1_programs = depth1_programs[:budget]
+
+        # Evaluate Depth 1 candidates
         evaluated_candidates: List[Tuple[DSLProgram, VerificationResult]] = []
 
         for prog in depth1_programs:
@@ -204,10 +271,12 @@ class DSLBeamSearch:
         # Check REPL Refinement on Depth 1 promising candidates
         if self.enable_repl_refinement and time.time() < deadline:
             for prog, v_res in evaluated_candidates[:8]:
-                if time.time() > deadline:
+                if time.time() > deadline or (budget is not None and candidates_generated >= budget):
                     break
                 refined = self.refiner.refine(prog, v_res, demonstrations)
                 for ref_prog in refined:
+                    if budget is not None and candidates_generated >= budget:
+                        break
                     candidates_generated += 1
                     ref_vres = self.verifier.verify(ref_prog, demonstrations)
                     candidates_executed += 1
@@ -229,11 +298,31 @@ class DSLBeamSearch:
                     evaluated_candidates.append((ref_prog, ref_vres))
 
         # Sort evaluated candidates to form Beam
-        # Score formula: shape_matches count * 2.0 + mean_pixel_accuracy - complexity * 0.05
+        # Score formula: exact matches + shape matches + pixel accuracy - complexity
         def score_candidate(pair: Tuple[DSLProgram, VerificationResult]) -> float:
             p, v = pair
-            shape_score = sum(1.0 for d in v.demonstration_diagnostics if d.shape_match) / len(demonstrations)
-            return shape_score * 2.0 + v.mean_pixel_accuracy - (p.complexity * 0.05)
+            if v.is_fully_solved:
+                return 100.0 - (p.complexity * 0.01)
+
+            # Heavily penalize identity when demonstrations show changes
+            if task_has_changes and (
+                p.name == "identity" or (len(p.calls) == 1 and p.calls[0].primitive_name == "identity")
+            ):
+                return -10.0
+
+            n_demos = max(1, len(demonstrations))
+            shape_score = sum(1.0 for d in v.demonstration_diagnostics if d.shape_match) / n_demos
+            exact_score = sum(1.0 for d in v.demonstration_diagnostics if d.shape_match and d.pixel_accuracy == 1.0) / n_demos
+
+            if shape_score == 0:
+                return -5.0 - (p.complexity * 0.05)
+
+            return (
+                (exact_score * 10.0) +
+                (shape_score * 2.0) +
+                (v.mean_pixel_accuracy * 3.0) -
+                (p.complexity * 0.05)
+            )
 
         evaluated_candidates.sort(key=score_candidate, reverse=True)
         beam = evaluated_candidates[: self.beam_width]
@@ -242,14 +331,14 @@ class DSLBeamSearch:
         if self.max_depth >= 2 and time.time() < deadline:
             depth2_candidates: List[DSLProgram] = []
 
-            # Primitives for depth 2 second step (filtering, geometry, cleanup)
+            # Zero-parameter primitives for depth 2 second step (filtering, geometry, cleanup)
             step2_prims = [
                 "rot90", "rot180", "rot270", "flip_horizontal", "flip_vertical",
-                "transpose", "crop_to_content", "fill_enclosed_holes",
+                "transpose", "crop_to_content", "crop_to_largest_object",
                 "gravity_down", "gravity_up", "gravity_left", "gravity_right",
-                "outline_objects", "hollow_objects", "keep_largest_object",
+                "outline_objects", "hollow_out", "keep_largest_object",
                 "keep_smallest_object", "complete_symmetry_horizontal",
-                "complete_symmetry_vertical"
+                "complete_symmetry_vertical", "invert_colors", "remove_noise"
             ]
 
             # Add color replacements
@@ -259,12 +348,19 @@ class DSLBeamSearch:
                     if c_in != c_out:
                         color_calls.append(PrimitiveCall("replace_color", {"old_color": c_in, "new_color": c_out}))
 
+            # Add fill enclosed if new colors exist
+            if new_colors:
+                for fc in new_colors:
+                    color_calls.append(PrimitiveCall("fill_enclosed", {"fill_color": fc}))
+
             for base_prog, base_vres in beam:
-                if time.time() > deadline:
+                if time.time() > deadline or candidates_generated >= budget:
                     break
 
                 # Append step2 primitive
                 for p_name in step2_prims:
+                    if candidates_generated >= budget:
+                        break
                     if not constraints.is_primitive_admissible(p_name):
                         continue
                     new_prog = DSLProgram(
@@ -276,8 +372,10 @@ class DSLBeamSearch:
                     candidates_generated += 1
 
                 for c_call in color_calls[:4]:
+                    if candidates_generated >= budget:
+                        break
                     new_prog = DSLProgram(
-                        name=f"{base_prog.name}+{c_call.name}_{c_call.params.get('old_color')}_{c_call.params.get('new_color')}",
+                        name=f"{base_prog.name}+{c_call.name}_{c_call.params.get('old_color', '')}_{c_call.params.get('new_color', c_call.params.get('fill_color', ''))}",
                         calls=list(base_prog.calls) + [c_call],
                         origin="beam_d2_color",
                     )
@@ -313,10 +411,12 @@ class DSLBeamSearch:
             if self.enable_repl_refinement and time.time() < deadline:
                 evaluated_candidates.sort(key=score_candidate, reverse=True)
                 for prog, v_res in evaluated_candidates[:6]:
-                    if time.time() > deadline:
+                    if time.time() > deadline or (budget is not None and candidates_generated >= budget):
                         break
                     refined = self.refiner.refine(prog, v_res, demonstrations)
                     for ref_prog in refined:
+                        if budget is not None and candidates_generated >= budget:
+                            break
                         candidates_generated += 1
                         ref_vres = self.verifier.verify(ref_prog, demonstrations)
                         candidates_executed += 1

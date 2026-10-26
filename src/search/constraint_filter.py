@@ -18,12 +18,16 @@ SHAPE_CHANGING_PRIMITIVES = {
     "extract_color_bounding_box",
     "tile_grid",
     "scale_grid",
+    "scale_up",
     "repeat_pattern_h",
     "repeat_pattern_v",
     "pad_grid",
+    "pad",
     "mirror_horizontal",
     "mirror_vertical",
     "sort_objects_by_size",
+    "fractal_expansion",
+    "tile_alternating_h",
 }
 
 # Primitives that strictly preserve grid dimensions (H and W)

@@ -4,6 +4,7 @@ Scene Graph Builder that constructs relational edges between perceived objects.
 
 from typing import List, Optional, Tuple
 import numpy as np
+import scipy.ndimage
 
 from src.representation.grid import ArcGrid
 from src.perception.object import ArcObject
