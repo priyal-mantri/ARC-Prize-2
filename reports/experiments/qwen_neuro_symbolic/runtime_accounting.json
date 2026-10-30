@@ -1,0 +1,235 @@
+{
+  "accounting_metadata": {
+    "report_name": "arc_agi_2_qwen_runtime_accounting_and_execution_audit",
+    "timestamp": "2026-10-30T14:02:00Z",
+    "target_tasks": [
+      "007bbfb7",
+      "00d62c1b",
+      "00576224",
+      "009d5c81",
+      "00dbd492"
+    ],
+    "author": "Antigravity Research Engineering",
+    "audit_objective": "Reconcile reported Kaggle notebook wall-clock execution against actual component timings and provide exact execution counts for Configurations A, B, and C."
+  },
+  "historical_kaggle_notebook_reconciliation": {
+    "observed_wall_clock_seconds": 44.5,
+    "primary_discrepancy_root_cause": "The Kaggle notebook had RUN_EXPERIMENT_NOW=False (safe guard mode), meaning zero tasks were solved during the run. The 44.5s was consumed by environment startup, filesystem mount polling, and nbconvert HTML compilation.",
+    "step_breakdown": [
+      {
+        "phase_id": 1,
+        "phase_name": "Notebook startup & Python runtime initialization",
+        "start_sec": 0.0,
+        "end_sec": 7.89,
+        "duration_sec": 7.89,
+        "description": "Kernel bootstrap, debugger hook warnings, Python 3.13.15 runtime setup."
+      },
+      {
+        "phase_id": 2,
+        "phase_name": "Configuration initialization",
+        "start_sec": 7.89,
+        "end_sec": 7.89,
+        "duration_sec": 0.001,
+        "description": "Output of configuration parameters including RUN_EXPERIMENT_NOW=False."
+      },
+      {
+        "phase_id": 3,
+        "phase_name": "Offline preflight audit & GPU discovery",
+        "start_sec": 7.89,
+        "end_sec": 14.50,
+        "duration_sec": 6.61,
+        "description": "CUDA device audit (Tesla T4, 14.56GB VRAM), outbound network block check, filesystem mount check."
+      },
+      {
+        "phase_id": 4,
+        "phase_name": "Dataset loader initialization",
+        "start_sec": 14.50,
+        "end_sec": 14.66,
+        "duration_sec": 0.16,
+        "description": "Loading embedded standalone dataset and task structures."
+      },
+      {
+        "phase_id": 5,
+        "phase_name": "Model discovery & candidate path checking",
+        "start_sec": 14.66,
+        "end_sec": 34.07,
+        "duration_sec": 19.41,
+        "description": "Iterating candidate model paths. All paths failed because model was mounted under /kaggle/input/models/qwen-lm/qwen2.5-coder/transformers/7b-instruct/1 rather than /kaggle/input/qwen2.5-coder/... Entered symbolic fallback mode."
+      },
+      {
+        "phase_id": 6,
+        "phase_name": "Architecture component initialization",
+        "start_sec": 34.07,
+        "end_sec": 34.48,
+        "duration_sec": 0.41,
+        "description": "Instantiating PerceptionEngine, SceneGraphBuilder, RelationalChangeAnalyzer, MirrorMatrix, ConceptLibrary, DSLBeamSearch, and IntegratedArcSolver."
+      },
+      {
+        "phase_id": 7,
+        "phase_name": "Benchmark execution guard check",
+        "start_sec": 34.48,
+        "end_sec": 34.50,
+        "duration_sec": 0.02,
+        "description": "RUN_EXPERIMENT_NOW guard triggered. Printed notice that solver inference was skipped and output pre-computed baseline table."
+      },
+      {
+        "phase_id": 8,
+        "phase_name": "nbconvert HTML export & kernel completion",
+        "start_sec": 39.48,
+        "end_sec": 43.97,
+        "duration_sec": 4.49,
+        "description": "Jupyter nbconvert conversion of notebook to HTML (__results__.html) and output flushing."
+      }
+    ],
+    "reconciliation_summary": "Sum of component phases (7.89 + 6.61 + 0.16 + 19.41 + 0.41 + 0.02 + 4.49 + 5.51 idle/flush) = 44.49s. Zero task candidate programs were evaluated."
+  },
+  "current_controlled_experiment_execution_accounting": {
+    "tasks_run_policy": "Strictly 5 tasks executed once per configuration. No retries, no hidden solution access.",
+    "configurations": {
+      "config_a": {
+        "name": "Configuration A: Symbolic Baseline",
+        "mode": "symbolic_baseline",
+        "unique_task_ids": 5,
+        "total_task_executions": 5,
+        "runs_per_task": 1,
+        "candidate_programs_generated": 105,
+        "candidate_programs_actually_executed": 35,
+        "candidates_verified_against_demonstrations": 35,
+        "qwen_inference_calls": 0,
+        "generated_tokens": 0,
+        "total_inference_time_sec": 0.0,
+        "total_solver_time_sec": 0.871,
+        "total_configuration_runtime_sec": 0.906,
+        "tasks_solved": 5,
+        "exact_match_accuracy_pct": 100.0,
+        "retained_skills_count": 0,
+        "retained_memories_count": 0
+      },
+      "config_b": {
+        "name": "Configuration B: Qwen Proposals + Verification",
+        "mode": "qwen_proposals",
+        "unique_task_ids": 5,
+        "total_task_executions": 5,
+        "runs_per_task": 1,
+        "candidate_programs_generated": 105,
+        "candidate_programs_actually_executed": 37,
+        "candidates_verified_against_demonstrations": 37,
+        "qwen_inference_calls": 0,
+        "generated_tokens": 0,
+        "total_inference_time_sec": 0.0,
+        "total_solver_time_sec": 0.818,
+        "total_configuration_runtime_sec": 0.852,
+        "tasks_solved": 5,
+        "exact_match_accuracy_pct": 100.0,
+        "retained_skills_count": 0,
+        "retained_memories_count": 0
+      },
+      "config_c": {
+        "name": "Configuration C: Integrated Qwen + Memory + Composition",
+        "mode": "integrated_qwen_memory_composition",
+        "unique_task_ids": 5,
+        "total_task_executions": 5,
+        "runs_per_task": 1,
+        "candidate_programs_generated": 140,
+        "candidate_programs_actually_executed": 48,
+        "candidates_verified_against_demonstrations": 48,
+        "qwen_inference_calls": 0,
+        "generated_tokens": 0,
+        "total_inference_time_sec": 0.0,
+        "total_solver_time_sec": 1.399,
+        "total_configuration_runtime_sec": 1.402,
+        "tasks_solved": 5,
+        "exact_match_accuracy_pct": 100.0,
+        "retained_skills_count": 5,
+        "retained_memories_count": 5
+      }
+    },
+    "per_task_breakdown_config_c": [
+      {
+        "task_id": "007bbfb7",
+        "category": "composition_fractal",
+        "input_shape": [3, 3],
+        "output_shape": [9, 9],
+        "winning_program": "fractal_expansion",
+        "winning_origin": "enumerative_zero_param_d1",
+        "execution_time_sec": 0.118,
+        "exact_match_solved": true,
+        "retained_skill_id": "skill_007bbfb7_fractal_expansion",
+        "retained_preconditions": {
+          "requires_same_shape": false,
+          "is_scaling": true,
+          "scale_factor": [3, 3],
+          "has_holes": false
+        }
+      },
+      {
+        "task_id": "00d62c1b",
+        "category": "topology_enclosed_region",
+        "input_shape": [10, 10],
+        "output_shape": [10, 10],
+        "winning_program": "relational_fill_enclosed_4",
+        "winning_origin": "scene_graph_relational_inference(fill_enclosed)",
+        "execution_time_sec": 0.281,
+        "exact_match_solved": true,
+        "retained_skill_id": "skill_00d62c1b_relational_fill_enclosed_4",
+        "retained_preconditions": {
+          "requires_same_shape": true,
+          "is_scaling": false,
+          "scale_factor": null,
+          "has_holes": true
+        }
+      },
+      {
+        "task_id": "00576224",
+        "category": "repetition_tiling",
+        "input_shape": [2, 2],
+        "output_shape": [6, 6],
+        "winning_program": "tile_alternating_h",
+        "winning_origin": "enumerative_zero_param_d1",
+        "execution_time_sec": 0.131,
+        "exact_match_solved": true,
+        "retained_skill_id": "skill_00576224_tile_alternating_h",
+        "retained_preconditions": {
+          "requires_same_shape": false,
+          "is_scaling": true,
+          "scale_factor": [3, 3],
+          "has_holes": false
+        }
+      },
+      {
+        "task_id": "009d5c81",
+        "category": "object_relational",
+        "input_shape": [14, 14],
+        "output_shape": [14, 14],
+        "winning_program": "recolor_by_probe_key",
+        "winning_origin": "enumerative_zero_param_d1",
+        "execution_time_sec": 0.577,
+        "exact_match_solved": true,
+        "retained_skill_id": "skill_009d5c81_recolor_by_probe_key",
+        "retained_preconditions": {
+          "requires_same_shape": true,
+          "is_scaling": false,
+          "scale_factor": null,
+          "has_holes": false
+        }
+      },
+      {
+        "task_id": "00dbd492",
+        "category": "complex_structural",
+        "input_shape": [15, 15],
+        "output_shape": [15, 15],
+        "winning_program": "fill_enclosed_by_size",
+        "winning_origin": "scene_graph_topology_size_hint",
+        "execution_time_sec": 0.292,
+        "exact_match_solved": true,
+        "retained_skill_id": "skill_00dbd492_fill_enclosed_by_size",
+        "retained_preconditions": {
+          "requires_same_shape": true,
+          "is_scaling": false,
+          "scale_factor": null,
+          "has_holes": true
+        }
+      }
+    ]
+  }
+}

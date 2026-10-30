@@ -24,7 +24,7 @@ from src.scene_graph.graph import ArcSceneGraph
 from src.correspondence.matcher import ObjectCorrespondenceMatcher
 from src.correspondence.relational_change import RelationalChangeAnalyzer, RelationalChangeReport
 from src.fingerprint.encoder import task_to_fingerprint
-from src.memory.mirror_matrix import MirrorMatrix
+from src.memory.mirror_matrix import MirrorMatrix, MemoryEntry
 from src.solvers.concept_library import ConceptLibrary
 from src.solvers.hunter import HunterBaselineSolver
 from src.solvers.llm_synthesizer import LLMSynthesizerInterface
@@ -77,6 +77,9 @@ class IntegratedArcSolver:
         use_memory: Optional[bool] = None,
         use_repl_refinement: Optional[bool] = None,
         model_path: Optional[str] = None,
+        mode: Optional[str] = None,
+        enable_memory_composition: bool = False,
+        max_composition_depth: int = 2,
     ):
         self.num_guesses = num_guesses
         self.search_timeout = search_timeout_seconds
@@ -85,6 +88,25 @@ class IntegratedArcSolver:
         self.use_qwen = use_qwen
         self.use_scene_graph = use_scene_graph
         self.use_relational_reasoning = use_relational_reasoning
+        self.enable_memory_composition = enable_memory_composition
+        self.max_composition_depth = max_composition_depth
+
+        # Apply predefined controlled experimental modes if specified
+        if mode == "symbolic_baseline":
+            self.use_qwen = False
+            self.enable_memory = False
+            self.enable_memory_composition = False
+            self.max_composition_depth = 2
+        elif mode == "qwen_proposals":
+            self.use_qwen = True
+            self.enable_memory = False
+            self.enable_memory_composition = False
+            self.max_composition_depth = 2
+        elif mode == "integrated_qwen_memory_composition":
+            self.use_qwen = True
+            self.enable_memory = True
+            self.enable_memory_composition = True
+            self.max_composition_depth = max(3, max_composition_depth)
 
         if memory_bank is not None:
             self.memory = memory_bank
@@ -116,9 +138,9 @@ class IntegratedArcSolver:
         self.beam_search = DSLBeamSearch(
             verifier=self.verifier,
             beam_width=16,
-            max_depth=2,
+            max_depth=self.max_composition_depth,
             timeout_seconds=search_timeout_seconds,
-            enable_repl_refinement=enable_repl_refinement,
+            enable_repl_refinement=self.enable_repl,
             max_candidates=num_guesses,
         )
 
@@ -146,6 +168,15 @@ class IntegratedArcSolver:
         if not demonstrations or not task.test_inputs:
             return self._empty_solution(task, start_time, "invalid_task")
 
+        # Initialize facts and reports before Stage 1
+        scene_graph_facts: Dict[str, Any] = {
+            "has_holes": False,
+            "total_objects": 0,
+            "alignments": [],
+            "containment_detected": False,
+        }
+        change_report: Optional[RelationalChangeReport] = None
+
         # -------------------------------------------------------------
         # STAGE 1: Fast Hunter Symbolic Baseline
         # -------------------------------------------------------------
@@ -155,6 +186,8 @@ class IntegratedArcSolver:
         profiling["hunter_time"] = time.time() - t0
         if hunter_prog is not None:
             component_statuses["dsl_beam_search"] = "integrated_and_influencing_predictions"
+            if self.enable_memory_composition:
+                self._retain_verified_solution(task, hunter_prog, demonstrations, scene_graph_facts, change_report)
             return self._build_solution(
                 task=task,
                 solved=True,
@@ -171,12 +204,6 @@ class IntegratedArcSolver:
         # STAGE 2: Object-Centric Perception & Scene Graph Construction
         # -------------------------------------------------------------
         scene_graphs: List[ArcSceneGraph] = []
-        scene_graph_facts: Dict[str, Any] = {
-            "has_holes": False,
-            "total_objects": 0,
-            "alignments": [],
-            "containment_detected": False,
-        }
 
         if self.use_scene_graph:
             t0 = time.time()
@@ -223,7 +250,21 @@ class IntegratedArcSolver:
             # 4a. Concept Library Skills
             if len(self.concept_library.skills) > 0:
                 same_shape = all(d.input_grid.shape == d.output_grid.shape for d in demonstrations)
-                matching_skills = self.concept_library.get_candidate_skills_for_task({"same_shape": same_shape})
+                is_scaling = False
+                scale_factor = None
+                if demonstrations:
+                    in_h, in_w = demonstrations[0].input_grid.shape
+                    out_h, out_w = demonstrations[0].output_grid.shape
+                    if out_h % in_h == 0 and out_w % in_w == 0 and (out_h != in_h or out_w != in_w):
+                        is_scaling = True
+                        scale_factor = (out_h // in_h, out_w // in_w)
+                task_preconditions = {
+                    "same_shape": same_shape,
+                    "is_scaling": is_scaling,
+                    "scale_factor": scale_factor,
+                    "has_holes": scene_graph_facts.get("has_holes", False),
+                }
+                matching_skills = self.concept_library.get_candidate_skills_for_task(task_preconditions)
                 for skill in matching_skills:
                     vres = self.verifier.verify(skill.program, demonstrations)
                     if vres.is_fully_solved:
@@ -276,11 +317,13 @@ class IntegratedArcSolver:
         if self.use_qwen:
             t0 = time.time()
             qwen_budget = min(10, max(2, self.num_guesses // 2))
+            available_skills = self.concept_library.export_skills_summary() if self.enable_memory_composition else None
             neural_candidates = self.synthesizer.generate_hypotheses(
                 task=task,
                 change_report=change_report,
                 max_candidates=qwen_budget,
                 scene_graph_facts=scene_graph_facts,
+                available_skills=available_skills,
             )
             profiling["qwen_inference_time"] = time.time() - t0
             if self.synthesizer.telemetry.inference_success:
@@ -289,8 +332,11 @@ class IntegratedArcSolver:
                 component_statuses["qwen_neural"] = "unavailable"
 
             for prog in neural_candidates:
+                self.synthesizer.telemetry.qwen_proposal_verification_count += 1
                 vres = self.verifier.verify(prog, demonstrations)
                 if vres.is_fully_solved:
+                    if self.enable_memory_composition:
+                        self._retain_verified_solution(task, prog, demonstrations, scene_graph_facts, change_report)
                     return self._build_solution(
                         task=task,
                         solved=True,
@@ -315,12 +361,22 @@ class IntegratedArcSolver:
         component_statuses["dsl_beam_search"] = "integrated_and_influencing_predictions"
         remaining_timeout = max(0.5, self.search_timeout - (time.time() - start_time))
 
+        seed_progs: List[DSLProgram] = []
+        if self.enable_memory_composition:
+            for p in memory_candidates:
+                if p not in seed_progs:
+                    seed_progs.append(p)
+            for p in neural_candidates:
+                if p not in seed_progs:
+                    seed_progs.append(p)
+
         t0 = time.time()
         search_res: SearchResult = self.beam_search.search(
             task,
             timeout=remaining_timeout,
             max_candidates=self.num_guesses,
             scene_graph_facts=scene_graph_facts,
+            seed_programs=seed_progs if seed_progs else None,
         )
         profiling["beam_search_time"] = time.time() - t0
 
@@ -345,6 +401,8 @@ class IntegratedArcSolver:
 
         best_prog = surviving_candidates[0] if surviving_candidates else None
         solved = search_res.solved and best_prog is not None
+        if solved and best_prog and self.enable_memory_composition:
+            self._retain_verified_solution(task, best_prog, demonstrations, scene_graph_facts, change_report)
 
         profiling["total_time"] = time.time() - start_time
 
@@ -454,3 +512,56 @@ class IntegratedArcSolver:
             execution_time_sec=duration,
             solver_pipeline_stage=reason,
         )
+
+    def _retain_verified_solution(
+        self,
+        task: ArcTask,
+        program: DSLProgram,
+        demonstrations: List[TaskDemonstration],
+        scene_graph_facts: Dict[str, Any],
+        change_report: Optional[RelationalChangeReport] = None,
+    ) -> None:
+        """Register a verified program into ConceptLibrary and MirrorMatrix for continuous learning."""
+        try:
+            same_shape = all(d.input_grid.shape == d.output_grid.shape for d in demonstrations)
+            is_scaling = False
+            scale_factor = None
+            if len(demonstrations) > 0:
+                in_h, in_w = demonstrations[0].input_grid.shape
+                out_h, out_w = demonstrations[0].output_grid.shape
+                if out_h % in_h == 0 and out_w % in_w == 0 and (out_h != in_h or out_w != in_w):
+                    is_scaling = True
+                    scale_factor = (out_h // in_h, out_w // in_w)
+
+            preconditions = {
+                "requires_same_shape": same_shape,
+                "is_scaling": is_scaling,
+                "scale_factor": scale_factor,
+                "requires_holes": scene_graph_facts.get("has_holes", False) if scene_graph_facts else False,
+            }
+
+            effects = [call.primitive_name for call in program.calls]
+
+            self.concept_library.register_skill(
+                program=program,
+                task_id=task.task_id,
+                preconditions=preconditions,
+                expected_effects=effects,
+            )
+
+            fp = task_to_fingerprint(task)
+            entry = MemoryEntry(
+                task_id=task.task_id,
+                fingerprint=fp,
+                program=program,
+                code=program.to_code(),
+                status="verified_reusable",
+                provenance=program.origin or "integrated_solver",
+                tags=[c.primitive_name for c in program.calls],
+                metadata={"preconditions": preconditions},
+            )
+            self.memory.add_entry(entry)
+            logger.info("Retained verified solution for task %s (%s) into concept library & memory bank", task.task_id, program.name)
+        except Exception as e:
+            logger.warning("Failed to retain verified solution for task %s: %s", task.task_id, e)
+

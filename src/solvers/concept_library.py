@@ -63,8 +63,9 @@ class LearnedSkill:
 class ConceptLibrary:
     """Registry and synthesizer for learned reusable skills."""
 
-    def __init__(self, storage_path: Optional[Path] = None):
+    def __init__(self, storage_path: Optional[Path] = None, max_skills: int = 50):
         self.storage_path = storage_path
+        self.max_skills = max_skills
         self._skills: Dict[str, LearnedSkill] = {}
         if storage_path and storage_path.exists():
             self.load(storage_path)
@@ -92,6 +93,11 @@ class ConceptLibrary:
                     skill.solved_task_ids.append(task_id)
                 return skill
 
+        # Enforce bounded capacity: if full, evict the skill that solved fewest tasks
+        if len(self._skills) >= self.max_skills:
+            least_used = min(self._skills.values(), key=lambda s: len(s.solved_task_ids))
+            del self._skills[least_used.skill_id]
+
         skill_id = f"skill_{len(self._skills) + 1:03d}_{program.name}"
         new_skill = LearnedSkill(
             skill_id=skill_id,
@@ -106,16 +112,44 @@ class ConceptLibrary:
         return new_skill
 
     def get_candidate_skills_for_task(self, task_preconditions: Dict[str, Any]) -> List[LearnedSkill]:
-        """Retrieve skills matching a task's basic structural preconditions."""
+        """Retrieve skills matching a task's structural and relational preconditions."""
         matched: List[LearnedSkill] = []
         for skill in self._skills.values():
-            # Check shape compatibility
-            if skill.preconditions.get("requires_same_shape") and not task_preconditions.get("same_shape", True):
+            pre = skill.preconditions
+
+            # 1. Check shape compatibility
+            if pre.get("requires_same_shape") and not task_preconditions.get("same_shape", True):
                 continue
+            if pre.get("is_scaling") and not task_preconditions.get("is_scaling", False):
+                continue
+
+            # 2. Check topological requirements (enclosed voids)
+            if pre.get("requires_holes") and not task_preconditions.get("has_holes", False):
+                continue
+
+            # 3. Check exact scaling factor if specified
+            if "scale_factor" in pre and "scale_factor" in task_preconditions:
+                if pre["scale_factor"] != task_preconditions["scale_factor"]:
+                    continue
+
             matched.append(skill)
+
         # Sort by popularity (how many tasks it has solved) and inverse complexity
         matched.sort(key=lambda s: (len(s.solved_task_ids), -s.complexity), reverse=True)
         return matched
+
+    def export_skills_summary(self) -> List[Dict[str, Any]]:
+        """Export lightweight summaries of registered skills for LLM prompt context."""
+        summaries = []
+        for s in self.skills:
+            summaries.append({
+                "skill_id": s.skill_id,
+                "name": s.program.name,
+                "calls": [c.primitive_name for c in s.program.calls],
+                "preconditions": s.preconditions,
+                "solved_count": len(s.solved_task_ids),
+            })
+        return summaries
 
     def save(self, path: Optional[Path] = None) -> None:
         """Persist concept library to JSON disk."""

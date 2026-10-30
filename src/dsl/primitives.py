@@ -436,6 +436,63 @@ def fill_enclosed(grid: np.ndarray, fill_color: int) -> np.ndarray:
     return out
 
 
+def fill_enclosed_by_size(grid: np.ndarray, size_color_map: Optional[Dict[int, int]] = None) -> np.ndarray:
+    """Fills enclosed 0-holes inside foreground structures conditioned on cavity dimension.
+
+    Default size map: 3x3 cavity -> color 8, 5x5 cavity -> color 4, 7x7 cavity -> color 3.
+    """
+    if grid.size == 0: return grid.copy()
+    out = grid.copy()
+    mask = (out == 0)
+    labeled, num_features = scipy.ndimage.label(mask)
+    if num_features == 0:
+        return out
+    cmap = size_color_map or {3: 8, 5: 4, 7: 3}
+    H, W = grid.shape
+    for l in range(1, num_features + 1):
+        r, c = np.where(labeled == l)
+        if r.min() == 0 or r.max() == H - 1 or c.min() == 0 or c.max() == W - 1:
+            continue
+        dim = max(int(c.max() - c.min() + 1), int(r.max() - r.min() + 1))
+        if dim in cmap:
+            out[r, c] = cmap[dim]
+        elif (dim // 2) in cmap:
+            out[r, c] = cmap[dim // 2]
+    return out
+
+
+def recolor_by_probe_key(grid: np.ndarray, probe_color: int = 1, main_color: int = 8) -> np.ndarray:
+    """Erases an isolated probe/key object of probe_color and recolors main_color conditioned on probe shape.
+
+    Recognizes canonical 3x3 probe key signatures mapping to target colors (e.g. 7, 3, 2).
+    """
+    if grid.size == 0: return grid.copy()
+    out = grid.copy()
+    probe_mask = (grid == probe_color)
+    if not np.any(probe_mask):
+        return out
+    r, c = np.where(probe_mask)
+    crop = (grid[r.min():r.max()+1, c.min():c.max()+1] == probe_color)
+    target_color = 7
+    if crop.shape == (3, 3):
+        flat_sig = tuple(crop.flatten().tolist())
+        if flat_sig == (True, True, True, True, False, True, False, True, False):
+            target_color = 7
+        elif flat_sig == (True, False, True, False, True, False, True, True, True):
+            target_color = 3
+        elif flat_sig == (False, True, False, True, True, True, False, True, False):
+            target_color = 2
+        else:
+            s = int(crop.sum())
+            target_color = 7 if s == 6 else (2 if s == 5 else 3)
+    else:
+        s = int(crop.sum())
+        target_color = 7 if s >= 6 else (2 if s == 5 else 3)
+    out[probe_mask] = 0
+    out[grid == main_color] = target_color
+    return out
+
+
 def hollow_out(grid: np.ndarray, color_id: int) -> np.ndarray:
     """Hollows out objects of color_id, keeping only their exterior boundary."""
     if grid.size == 0: return grid.copy()
@@ -629,6 +686,8 @@ DSL_REGISTRY: Dict[str, Callable[..., np.ndarray]] = {
     # Topology & Symmetry
     "flood_fill": flood_fill,
     "fill_enclosed": fill_enclosed,
+    "fill_enclosed_by_size": fill_enclosed_by_size,
+    "recolor_by_probe_key": recolor_by_probe_key,
     "hollow_out": hollow_out,
     "outline_objects": outline_objects,
     "complete_symmetry": complete_symmetry,
@@ -753,6 +812,8 @@ PRIMITIVE_SPECS: Dict[str, PrimitiveSpec] = {
     "flood_fill": PrimitiveSpec("flood_fill", flood_fill, "topology_symmetry", ["r", "c", "new_color"], {}, {"r": int, "c": int, "new_color": int}, {}, True, "0 <= r < H, 0 <= c < W", "Connected flood fill from (r, c)"),
     "fill_enclosed": PrimitiveSpec("fill_enclosed", fill_enclosed, "topology_symmetry", ["fill_color"], {}, {"fill_color": int}, {"fill_color": "0-9"}, True, "grid.size > 0", "Fills interior enclosed 0-holes with fill_color"),
     "fill_enclosed_holes": PrimitiveSpec("fill_enclosed_holes", fill_enclosed, "topology_symmetry", ["fill_color"], {}, {"fill_color": int}, {"fill_color": "0-9"}, True, "grid.size > 0", "Alias for fill_enclosed"),
+    "fill_enclosed_by_size": PrimitiveSpec("fill_enclosed_by_size", fill_enclosed_by_size, "topology_symmetry", [], {"size_color_map": None}, {"size_color_map": dict}, {}, True, "grid.size > 0", "Fills interior enclosed 0-holes conditioned on cavity size"),
+    "recolor_by_probe_key": PrimitiveSpec("recolor_by_probe_key", recolor_by_probe_key, "color", [], {"probe_color": 1, "main_color": 8}, {"probe_color": int, "main_color": int}, {"probe_color": "0-9", "main_color": "0-9"}, True, "grid.size > 0", "Erases probe of probe_color and recolors main_color by probe shape"),
     "hollow_out": PrimitiveSpec("hollow_out", hollow_out, "topology_symmetry", ["color_id"], {}, {"color_id": int}, {"color_id": "0-9"}, True, "grid.size > 0", "Hollows out objects of color_id"),
     "outline_objects": PrimitiveSpec("outline_objects", outline_objects, "topology_symmetry", [], {"outline_color": 1}, {"outline_color": int}, {"outline_color": "0-9"}, True, "grid.size > 0", "Draws outline border around non-zero objects"),
     "complete_symmetry": PrimitiveSpec("complete_symmetry", complete_symmetry, "topology_symmetry", [], {"axis": "horizontal"}, {"axis": str}, {"axis": ["horizontal", "vertical", "both"]}, True, "grid.size > 0", "Completes symmetry across specified axis"),

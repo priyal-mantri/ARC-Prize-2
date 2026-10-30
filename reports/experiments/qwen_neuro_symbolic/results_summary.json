@@ -1,0 +1,672 @@
+{
+  "metadata": {
+    "experiment_name": "qwen_neuro_symbolic_five_task_comparative_experiment",
+    "timestamp": "2026-10-30T13:59:12Z",
+    "target_tasks": [
+      "007bbfb7",
+      "00d62c1b",
+      "00576224",
+      "009d5c81",
+      "00dbd492"
+    ],
+    "environment": {
+      "os": "Linux",
+      "release": "7.0.0-42-generic",
+      "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+      "cuda_available": false
+    }
+  },
+  "configurations": {
+    "config_a": {
+      "configuration": "Configuration A: Symbolic Baseline",
+      "mode": "symbolic_baseline",
+      "tasks_evaluated": 5,
+      "tasks_solved": 5,
+      "accuracy_percent": 100.0,
+      "total_runtime_sec": 0.90643310546875,
+      "mean_latency_sec": 0.18128662109375,
+      "retained_skills_count": 0,
+      "retained_memories_count": 0,
+      "qwen_telemetry": {
+        "runtime_environment": {
+          "os": "Linux",
+          "os_release": "7.0.0-42-generic",
+          "python": "3.12.3",
+          "cuda_available": false
+        },
+        "model_identifier": "none",
+        "model_artifact_source": "none",
+        "model_artifact_path": "none",
+        "quantization_method": "none",
+        "runtime_versions": {
+          "torch": "2.14.0+cpu",
+          "transformers": "unavailable"
+        },
+        "gpu_device": null,
+        "model_loading_success": false,
+        "model_load_success": false,
+        "model_load_error": "No local Qwen model artifact found at candidate paths",
+        "model_load_seconds": 0.0,
+        "inference_success": false,
+        "calls_count": 0,
+        "tokens_generated": 0,
+        "generated_token_count": 0,
+        "inference_latency_sec": 0.0,
+        "inference_latency_seconds": 0.0,
+        "fallback_usage": true,
+        "symbolic_fallback_used": true,
+        "fallback_reason": "No local Qwen model artifact found at candidate paths",
+        "failures": [],
+        "proposals_count": 0,
+        "valid_dsl_programs_count": 0,
+        "inference_attempt_count": 0,
+        "successful_inference_count": 0,
+        "genuine_qwen_proposal_count": 0,
+        "valid_qwen_proposal_count": 0,
+        "qwen_proposal_verification_count": 0,
+        "unsupported_capability_requests": []
+      },
+      "task_results": [
+        {
+          "task_id": "007bbfb7",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.1381368637084961,
+          "best_program_name": "fractal_expansion",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: fractal_expansion(g)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                9,
+                9
+              ],
+              "att2_shape": [
+                9,
+                9
+              ],
+              "gt_shape": [
+                9,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00d62c1b",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.27248430252075195,
+          "best_program_name": "fill_enclosed_4",
+          "best_program_origin": "scene_graph_topology_hint",
+          "best_program_code": "lambda g: fill_enclosed(g, fill_color=4)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00576224",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.08229708671569824,
+          "best_program_name": "tile_alternating_h",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: tile_alternating_h(g)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                6,
+                6
+              ],
+              "att2_shape": [
+                6,
+                6
+              ],
+              "gt_shape": [
+                6,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "009d5c81",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.26944494247436523,
+          "best_program_name": "recolor_by_probe_key",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: recolor_by_probe_key(g)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                14,
+                14
+              ],
+              "att2_shape": [
+                14,
+                14
+              ],
+              "gt_shape": [
+                14,
+                14
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00dbd492",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.142012357711792,
+          "best_program_name": "fill_enclosed_by_size",
+          "best_program_origin": "scene_graph_topology_size_hint",
+          "best_program_code": "lambda g: fill_enclosed_by_size(g)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config_b": {
+      "configuration": "Configuration B: Qwen Proposals + Verification",
+      "mode": "qwen_proposals",
+      "tasks_evaluated": 5,
+      "tasks_solved": 5,
+      "accuracy_percent": 100.0,
+      "total_runtime_sec": 0.8517210483551025,
+      "mean_latency_sec": 0.1703442096710205,
+      "retained_skills_count": 0,
+      "retained_memories_count": 0,
+      "qwen_telemetry": {
+        "runtime_environment": {
+          "os": "Linux",
+          "os_release": "7.0.0-42-generic",
+          "python": "3.12.3",
+          "cuda_available": false
+        },
+        "model_identifier": "none",
+        "model_artifact_source": "none",
+        "model_artifact_path": "none",
+        "quantization_method": "none",
+        "runtime_versions": {
+          "torch": "2.14.0+cpu",
+          "transformers": "unavailable"
+        },
+        "gpu_device": null,
+        "model_loading_success": false,
+        "model_load_success": false,
+        "model_load_error": "No local Qwen model artifact found at candidate paths",
+        "model_load_seconds": 0.0,
+        "inference_success": false,
+        "calls_count": 0,
+        "tokens_generated": 0,
+        "generated_token_count": 0,
+        "inference_latency_sec": 0.0,
+        "inference_latency_seconds": 0.0,
+        "fallback_usage": true,
+        "symbolic_fallback_used": true,
+        "fallback_reason": "No local Qwen model artifact found at candidate paths",
+        "failures": [],
+        "proposals_count": 0,
+        "valid_dsl_programs_count": 0,
+        "inference_attempt_count": 0,
+        "successful_inference_count": 0,
+        "genuine_qwen_proposal_count": 0,
+        "valid_qwen_proposal_count": 0,
+        "qwen_proposal_verification_count": 7,
+        "unsupported_capability_requests": []
+      },
+      "task_results": [
+        {
+          "task_id": "007bbfb7",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.10478377342224121,
+          "best_program_name": "fractal_expansion",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: fractal_expansion(g)",
+          "unique_candidates": 2,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                9,
+                9
+              ],
+              "att2_shape": [
+                3,
+                3
+              ],
+              "gt_shape": [
+                9,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00d62c1b",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "neural_relational_hit",
+          "execution_time_sec": 0.26136326789855957,
+          "best_program_name": "relational_fill_enclosed_4",
+          "best_program_origin": "scene_graph_relational_inference(fill_enclosed)",
+          "best_program_code": "lambda g: fill_enclosed(g, fill_color=4)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00576224",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.09717893600463867,
+          "best_program_name": "tile_alternating_h",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: tile_alternating_h(g)",
+          "unique_candidates": 2,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                6,
+                6
+              ],
+              "att2_shape": [
+                2,
+                2
+              ],
+              "gt_shape": [
+                6,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "009d5c81",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.2329251766204834,
+          "best_program_name": "recolor_by_probe_key",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: recolor_by_probe_key(g)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                14,
+                14
+              ],
+              "att2_shape": [
+                14,
+                14
+              ],
+              "gt_shape": [
+                14,
+                14
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00dbd492",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.15339875221252441,
+          "best_program_name": "fill_enclosed_by_size",
+          "best_program_origin": "scene_graph_topology_size_hint",
+          "best_program_code": "lambda g: fill_enclosed_by_size(g)",
+          "unique_candidates": 5,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config_c": {
+      "configuration": "Configuration C: Integrated Qwen + Memory + Composition",
+      "mode": "integrated_qwen_memory_composition",
+      "tasks_evaluated": 5,
+      "tasks_solved": 5,
+      "accuracy_percent": 100.0,
+      "total_runtime_sec": 1.40181565284729,
+      "mean_latency_sec": 0.280363130569458,
+      "retained_skills_count": 5,
+      "retained_memories_count": 5,
+      "qwen_telemetry": {
+        "runtime_environment": {
+          "os": "Linux",
+          "os_release": "7.0.0-42-generic",
+          "python": "3.12.3",
+          "cuda_available": false
+        },
+        "model_identifier": "none",
+        "model_artifact_source": "none",
+        "model_artifact_path": "none",
+        "quantization_method": "none",
+        "runtime_versions": {
+          "torch": "2.14.0+cpu",
+          "transformers": "unavailable"
+        },
+        "gpu_device": null,
+        "model_loading_success": false,
+        "model_load_success": false,
+        "model_load_error": "No local Qwen model artifact found at candidate paths",
+        "model_load_seconds": 0.0,
+        "inference_success": false,
+        "calls_count": 0,
+        "tokens_generated": 0,
+        "generated_token_count": 0,
+        "inference_latency_sec": 0.0,
+        "inference_latency_seconds": 0.0,
+        "fallback_usage": true,
+        "symbolic_fallback_used": true,
+        "fallback_reason": "No local Qwen model artifact found at candidate paths",
+        "failures": [],
+        "proposals_count": 0,
+        "valid_dsl_programs_count": 0,
+        "inference_attempt_count": 0,
+        "successful_inference_count": 0,
+        "genuine_qwen_proposal_count": 0,
+        "valid_qwen_proposal_count": 0,
+        "qwen_proposal_verification_count": 7,
+        "unsupported_capability_requests": []
+      },
+      "task_results": [
+        {
+          "task_id": "007bbfb7",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.1175992488861084,
+          "best_program_name": "fractal_expansion",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: fractal_expansion(g)",
+          "unique_candidates": 2,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                9,
+                9
+              ],
+              "att2_shape": [
+                3,
+                3
+              ],
+              "gt_shape": [
+                9,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00d62c1b",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "neural_relational_hit",
+          "execution_time_sec": 0.2806994915008545,
+          "best_program_name": "relational_fill_enclosed_4",
+          "best_program_origin": "scene_graph_relational_inference(fill_enclosed)",
+          "best_program_code": "lambda g: fill_enclosed(g, fill_color=4)",
+          "unique_candidates": 1,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": true,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00576224",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.13146638870239258,
+          "best_program_name": "tile_alternating_h",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: tile_alternating_h(g)",
+          "unique_candidates": 2,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                6,
+                6
+              ],
+              "att2_shape": [
+                2,
+                2
+              ],
+              "gt_shape": [
+                6,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "009d5c81",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.5766172409057617,
+          "best_program_name": "recolor_by_probe_key",
+          "best_program_origin": "enumerative_zero_param_d1",
+          "best_program_code": "lambda g: recolor_by_probe_key(g)",
+          "unique_candidates": 2,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                14,
+                14
+              ],
+              "att2_shape": [
+                14,
+                14
+              ],
+              "gt_shape": [
+                14,
+                14
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "00dbd492",
+          "exact_match_solved": true,
+          "tests_solved": 1,
+          "num_tests": 1,
+          "pipeline_stage": "dsl_beam_search",
+          "execution_time_sec": 0.29248619079589844,
+          "best_program_name": "fill_enclosed_by_size",
+          "best_program_origin": "scene_graph_topology_size_hint",
+          "best_program_code": "lambda g: fill_enclosed_by_size(g)",
+          "unique_candidates": 6,
+          "search_depth": 1,
+          "test_evaluations": [
+            {
+              "test_index": 0,
+              "attempt_1_exact": true,
+              "attempt_2_exact": false,
+              "test_solved": true,
+              "att1_shape": [
+                20,
+                20
+              ],
+              "att2_shape": [
+                20,
+                20
+              ],
+              "gt_shape": [
+                20,
+                20
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

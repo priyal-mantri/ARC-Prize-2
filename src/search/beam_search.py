@@ -65,6 +65,7 @@ class DSLBeamSearch:
         timeout: Optional[float] = None,
         max_candidates: Optional[int] = None,
         scene_graph_facts: Optional[Dict[str, Any]] = None,
+        seed_programs: Optional[List[DSLProgram]] = None,
     ) -> SearchResult:
         """Execute constrained DSL search to find programs explaining all training demonstrations.
 
@@ -140,6 +141,11 @@ class DSLBeamSearch:
         if scene_graph_facts and scene_graph_facts.get("has_holes"):
             has_holes = True
 
+        # Ingest external seed programs (retrieved memory skills and/or Qwen proposals)
+        if seed_programs:
+            for sp in seed_programs:
+                add_candidate(sp)
+
         # High-priority parameterized candidates guided by scene graph & invariants:
         # 1. Enclosed region filling if new colors exist or scene graph indicates holes
         if new_colors or has_holes:
@@ -150,6 +156,22 @@ class DSLBeamSearch:
                     calls=[PrimitiveCall("fill_enclosed", {"fill_color": fc})],
                     origin="scene_graph_topology_hint",
                 ))
+            if len(new_colors) > 1 or constraints.is_primitive_admissible("fill_enclosed_by_size"):
+                add_candidate(DSLProgram(
+                    name="fill_enclosed_by_size",
+                    calls=[PrimitiveCall("fill_enclosed_by_size")],
+                    origin="scene_graph_topology_size_hint",
+                ))
+
+        # 1b. Probe-conditioned recoloring if an auxiliary input color was eliminated
+        if eliminated_colors and constraints.is_primitive_admissible("recolor_by_probe_key"):
+            for elim_c in eliminated_colors:
+                for main_c in (in_colors - eliminated_colors - {0}):
+                    add_candidate(DSLProgram(
+                        name=f"recolor_by_probe_{elim_c}_{main_c}",
+                        calls=[PrimitiveCall("recolor_by_probe_key", {"probe_color": elim_c, "main_color": main_c})],
+                        origin="relational_probe_key_hint",
+                    ))
 
         # 2. Schema-Driven Zero-parameter primitives, prioritized by dimensional behavior
         compatible_zero_param = []
@@ -437,6 +459,84 @@ class DSLBeamSearch:
                             )
                         evaluated_candidates.append((ref_prog, ref_vres))
 
+        # Step 3: Depth 3 Expansion (Bounded Composition)
+        max_depth_reached = 2 if self.max_depth >= 2 else 1
+        if self.max_depth >= 3 and time.time() < deadline:
+            max_depth_reached = 3
+            depth3_candidates: List[DSLProgram] = []
+            evaluated_candidates.sort(key=score_candidate, reverse=True)
+            beam_d3 = evaluated_candidates[: min(8, self.beam_width)]
+
+            step3_prims = [
+                "rot90", "rot180", "rot270", "flip_horizontal", "flip_vertical",
+                "transpose", "crop_to_content", "keep_largest_object",
+                "keep_smallest_object", "remove_noise", "invert_colors",
+                "hollow_out", "complete_symmetry_horizontal", "complete_symmetry_vertical"
+            ]
+
+            for base_prog, base_vres in beam_d3:
+                if time.time() > deadline or candidates_generated >= budget:
+                    break
+
+                # Intermediate validation: execute base program on first demonstration
+                try:
+                    inter_grid = base_prog.execute(demonstrations[0].input_grid)
+                    if inter_grid is None or inter_grid.size == 0 or inter_grid.shape[0] > 30 or inter_grid.shape[1] > 30:
+                        candidates_pruned += 1
+                        continue
+                except Exception:
+                    candidates_pruned += 1
+                    continue
+
+                for p_name in step3_prims:
+                    if candidates_generated >= budget:
+                        break
+                    if not constraints.is_primitive_admissible(p_name):
+                        continue
+                    new_prog = DSLProgram(
+                        name=f"{base_prog.name}+{p_name}",
+                        calls=list(base_prog.calls) + [PrimitiveCall(p_name)],
+                        origin="beam_d3_composed",
+                    )
+                    depth3_candidates.append(new_prog)
+                    candidates_generated += 1
+
+                for c_call in color_calls[:2]:
+                    if candidates_generated >= budget:
+                        break
+                    new_prog = DSLProgram(
+                        name=f"{base_prog.name}+{c_call.name}",
+                        calls=list(base_prog.calls) + [c_call],
+                        origin="beam_d3_color",
+                    )
+                    depth3_candidates.append(new_prog)
+                    candidates_generated += 1
+
+            # Evaluate Depth 3 candidates
+            for d3_prog in depth3_candidates:
+                if time.time() > deadline:
+                    break
+                d3_vres = self.verifier.verify(d3_prog, demonstrations)
+                candidates_executed += 1
+
+                if d3_vres.is_fully_solved:
+                    elapsed = time.time() - start_time
+                    return SearchResult(
+                        task_id=task.task_id,
+                        solved=True,
+                        best_program=d3_prog,
+                        candidate_programs=[d3_prog],
+                        verification_results=[d3_vres],
+                        candidates_generated=candidates_generated,
+                        candidates_pruned=candidates_pruned,
+                        candidates_executed=candidates_executed,
+                        search_duration_sec=elapsed,
+                        depth_reached=3,
+                        diagnostics={"instant_solve_d3": d3_prog.name},
+                    )
+
+                evaluated_candidates.append((d3_prog, d3_vres))
+
         # Final ranking of all surviving candidates
         evaluated_candidates.sort(key=score_candidate, reverse=True)
         top_candidates = evaluated_candidates[:5]
@@ -456,7 +556,7 @@ class DSLBeamSearch:
             candidates_pruned=candidates_pruned,
             candidates_executed=candidates_executed,
             search_duration_sec=elapsed,
-            depth_reached=2 if self.max_depth >= 2 else 1,
+            depth_reached=max_depth_reached,
             diagnostics={
                 "top_score": score_candidate(top_candidates[0]) if top_candidates else 0.0,
                 "top_accuracy": best_vres.mean_pixel_accuracy if best_vres else 0.0,
